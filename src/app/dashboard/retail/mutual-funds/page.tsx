@@ -2,11 +2,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Modal, Dropdown, MenuProps } from 'antd';
+import { Modal, Drawer, Select, Switch } from 'antd';
 import {
-  PieChart, Plus, Search, ChevronRight, Loader2, AlertCircle,
-  RefreshCw, Pencil, Trash2, Check, Star, Filter, MoreHorizontal,
+  PieChart, Plus, Search, Loader2, AlertCircle,
+  RefreshCw, Pencil, Trash2, Check, Star, Filter,
   Sparkles, DollarSign, ShieldCheck, TrendingUp, BarChart2, Layers, Clock,
+  Wifi, Play, Upload, X, ArrowUpRight,
 } from 'lucide-react';
 import { RoleGuard } from '@/auth/components/RoleGuard';
 import {
@@ -19,8 +20,15 @@ import {
 } from '@/auth/services/adminApi';
 import { useToast } from '@/auth/components/ToastContainer';
 
-// ─── constants ────────────────────────────────────────────────────────────────
+// ─── constants & helpers ───────────────────────────────────────────────────────
 const RISK_OPTIONS = ['All', 'Low Risk', 'Moderate Risk', 'High Risk', 'Very High Risk'];
+
+const RISK_META: Record<string, { color: string; bg: string; label: string }> = {
+  'Low Risk': { color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800', label: 'Low Risk' },
+  'Moderate Risk': { color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800', label: 'Moderate' },
+  'High Risk': { color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800', label: 'High Risk' },
+  'Very High Risk': { color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800', label: 'Very High' },
+};
 
 const emptyForm = (): CreateMutualFundRequest => ({
   fundId: '',
@@ -28,20 +36,11 @@ const emptyForm = (): CreateMutualFundRequest => ({
   shortDescription: '',
   riskLevel: 'Low Risk',
   isRecommended: false,
-  durationLabel: '',
-  expectedYieldLabel: '',
-  howYouEarnText: '',
+  durationLabel: '12 – 36 months',
+  expectedYieldLabel: '14.5% p.a.',
+  howYouEarnText: 'Yield is calculated daily and paid monthly into your investment wallet.',
   isActive: true,
   displayOrder: 0,
-});
-
-// Helper for card action dropdown
-const getCardMenu = (cardTitle: string): MenuProps => ({
-  items: [
-    { key: '1', label: `View ${cardTitle} Details` },
-    { key: '2', label: 'Export Dataset' },
-    { key: '3', label: 'Configure Thresholds' },
-  ],
 });
 
 export default function MutualFundsPage() {
@@ -62,10 +61,11 @@ function MutualFundsContent() {
   const [pageNumber, setPageNumber] = useState(1);
   const PAGE_SIZE = 20;
 
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(null);
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | null>(null);
   const [selectedItem, setSelectedItem] = useState<MutualFundContent | null>(null);
   const [form, setForm] = useState<CreateMutualFundRequest>(emptyForm());
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MutualFundContent | null>(null);
 
   const { data, isFetching, isError, refetch } = useGetMutualFundContentsQuery({ pageNumber, pageSize: PAGE_SIZE });
@@ -86,6 +86,12 @@ function MutualFundsContent() {
 
   const activeCount = items.filter((i) => i.isActive).length;
   const recommendedCount = items.filter((i) => i.isRecommended).length;
+
+  // Find maximum display order for dynamic auto-assignment
+  const maxDisplayOrder = useMemo(() => {
+    if (items.length === 0) return 0;
+    return Math.max(...items.map((i) => i.displayOrder ?? 0));
+  }, [items]);
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
@@ -112,10 +118,14 @@ function MutualFundsContent() {
   }
 
   function openCreate() {
-    setForm(emptyForm());
+    setForm({
+      ...emptyForm(),
+      displayOrder: maxDisplayOrder + 1,
+    });
+    setCoverImage(null);
     setFormErrors({});
     setSelectedItem(null);
-    setModalMode('create');
+    setDrawerMode('create');
   }
 
   function openEdit(item: MutualFundContent) {
@@ -125,22 +135,22 @@ function MutualFundsContent() {
       shortDescription: item.shortDescription ?? '',
       riskLevel: item.riskLevel ?? 'Low Risk',
       isRecommended: item.isRecommended ?? false,
-      durationLabel: item.durationLabel ?? '',
-      expectedYieldLabel: item.expectedYieldLabel ?? '',
+      durationLabel: item.durationLabel ?? '12 – 36 months',
+      expectedYieldLabel: item.expectedYieldLabel ?? '14.5% p.a.',
       howYouEarnText: item.howYouEarnText ?? '',
       isActive: item.isActive ?? true,
       displayOrder: item.displayOrder ?? 0,
     });
+    setCoverImage(null);
     setFormErrors({});
     setSelectedItem(item);
-    setModalMode('edit');
+    setDrawerMode('edit');
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validateForm()) return;
     try {
-      // Auto-generate fundId if empty in background
       const autoFundId = form.fundId.trim() || `AMF-MF-${String(Date.now()).slice(-6)}`;
       const formattedPayload: CreateMutualFundRequest = {
         ...form,
@@ -150,16 +160,17 @@ function MutualFundsContent() {
         durationLabel: form.durationLabel?.trim() || '',
         expectedYieldLabel: form.expectedYieldLabel?.trim() || '',
         howYouEarnText: form.howYouEarnText?.trim() || '',
+        displayOrder: drawerMode === 'create' ? maxDisplayOrder + 1 : form.displayOrder,
       };
 
-      if (modalMode === 'create') {
+      if (drawerMode === 'create') {
         await createFund(formattedPayload).unwrap();
         toast.success('Mutual fund content created successfully.', 'Created');
       } else if (selectedItem) {
         await updateFund({ id: selectedItem.id, body: formattedPayload }).unwrap();
         toast.success('Mutual fund content updated successfully.', 'Updated');
       }
-      setModalMode(null);
+      setDrawerMode(null);
     } catch (err: any) {
       toast.error(err?.data?.statusMessage || 'Operation failed.', 'Error');
     }
@@ -222,7 +233,7 @@ function MutualFundsContent() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-xs cursor-pointer"
           >
             <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Refresh</span>
@@ -230,14 +241,14 @@ function MutualFundsContent() {
           <button
             id="create-fund-btn"
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-lg shadow-sm transition cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-xl shadow-sm transition cursor-pointer"
           >
             <Plus size={15} /> Add Mutual Fund
           </button>
         </div>
       </div>
 
-      {/* ── Analytics Stats Bar (MATCHING DASHBOARD KPI CARDS STYLING) ───── */}
+      {/* ── Analytics Stats Bar ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           cardTitle="Total Mutual Funds"
@@ -283,20 +294,20 @@ function MutualFundsContent() {
               placeholder="Search mutual funds by name or description…"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPageNumber(1); }}
-              className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-2 pl-9 pr-3 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+              className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-2 pl-9 pr-3 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
             />
           </div>
 
           {/* Filters */}
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium">
               <Filter size={13} /> Filters:
             </div>
 
             <select
               value={riskFilter}
               onChange={(e) => setRiskFilter(e.target.value)}
-              className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+              className="text-xs border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
             >
               {RISK_OPTIONS.map((r) => (
                 <option key={r} value={r}>{r}</option>
@@ -306,7 +317,7 @@ function MutualFundsContent() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+              className="text-xs border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active Only</option>
@@ -316,7 +327,7 @@ function MutualFundsContent() {
         </div>
 
         {/* Content Table */}
-        <div className="min-h-[340px] overflow-x-auto">
+        <div className="min-h-[340px]">
           {isFetching ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400">
               <Loader2 size={28} className="animate-spin text-[#961A1C]" />
@@ -335,133 +346,28 @@ function MutualFundsContent() {
               <button onClick={openCreate} className="text-xs text-[#961A1C] hover:underline font-semibold">Create first mutual fund</button>
             </div>
           ) : (
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-gray-50/60 dark:bg-gray-900/30 text-gray-400 dark:text-gray-500 uppercase tracking-wider font-bold text-[11px] border-b border-gray-100 dark:border-gray-700/50">
-                <tr>
-                  <th className="px-5 py-3">Fund Product</th>
-                  <th className="px-5 py-3">Risk Level</th>
-                  <th className="px-5 py-3">Expected Yield & Duration</th>
-                  <th className="px-5 py-3 text-center">Recommended</th>
-                  <th className="px-5 py-3 text-center">Status</th>
-                  <th className="px-5 py-3 text-center">Order</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/40">
-                {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-700/20 transition-colors group">
-                    
-                    {/* Fund Name & Description */}
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#961A1C]/8 dark:bg-[#961A1C]/15 flex items-center justify-center text-[#961A1C] shrink-0 font-bold">
-                          {item.displayName?.toLowerCase().includes('dollar') ? (
-                            <DollarSign size={18} />
-                          ) : item.displayName?.toLowerCase().includes('halal') ? (
-                            <ShieldCheck size={18} />
-                          ) : (
-                            <BarChart2 size={18} />
-                          )}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <button
-                            onClick={() => router.push(`/dashboard/retail/mutual-funds/${item.id}`)}
-                            className="font-semibold text-sm text-gray-900 dark:text-white hover:text-[#961A1C] dark:hover:text-[#e05557] transition-colors text-left truncate max-w-[280px]"
-                          >
-                            {item.displayName}
-                          </button>
-                          <span className="text-gray-400 dark:text-gray-400 text-[11px] line-clamp-1 mt-0.5">
-                            {item.shortDescription || 'Alpha investment fund offering structured yields'}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
+            <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+              {/* Column Headers */}
+              <div className="hidden md:grid grid-cols-12 gap-2 px-5 py-2.5 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-50/60 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800 text-center">
+                <div className="col-span-1">S/N</div>
+                <div className="col-span-4 text-left">Fund Product / Description</div>
+                <div className="col-span-2">Risk Level</div>
+                <div className="col-span-2">Expected Yield & Duration</div>
+                <div className="col-span-1">Featured</div>
+                <div className="col-span-2 text-right">Actions</div>
+              </div>
 
-                    {/* Risk Profile */}
-                    <td className="px-5 py-4">
-                      <RiskBadge risk={item.riskLevel} />
-                    </td>
-
-                    {/* Yield & Duration */}
-                    <td className="px-5 py-4">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-xs">
-                          {item.expectedYieldLabel || '14.5% p.a.'}
-                        </span>
-                        <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                          <Clock size={11} /> {item.durationLabel || 'Flexible / Open'}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Recommended */}
-                    <td className="px-5 py-4 text-center">
-                      {item.isRecommended ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                          <Star size={11} fill="currentColor" /> Featured
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-gray-400">—</span>
-                      )}
-                    </td>
-
-                    {/* Status Toggle */}
-                    <td className="px-5 py-4 text-center">
-                      <button
-                        onClick={() => handleToggleActive(item)}
-                        title={item.isActive ? 'Click to deactivate' : 'Click to activate'}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                          item.isActive
-                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300'
-                        }`}
-                      >
-                        {item.isActive ? (
-                          <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active</>
-                        ) : (
-                          <><span className="w-1.5 h-1.5 rounded-full bg-gray-400" /> Inactive</>
-                        )}
-                      </button>
-                    </td>
-
-                    {/* Display Order */}
-                    <td className="px-5 py-4 text-center">
-                      <span className="font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/60 rounded-md px-2 py-0.5">
-                        #{item.displayOrder ?? 0}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => router.push(`/dashboard/retail/mutual-funds/${item.id}`)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition"
-                          title="View Fund Details"
-                        >
-                          <ChevronRight size={15} />
-                        </button>
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="p-1.5 text-gray-400 hover:text-[#961A1C] hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition"
-                          title="Edit Content"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(item)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition"
-                          title="Delete Fund"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              {filtered.map((item, idx) => (
+                <MutualFundRow
+                  key={item.id}
+                  item={item}
+                  index={idx}
+                  onView={() => router.push(`/dashboard/retail/mutual-funds/${item.id}`)}
+                  onEdit={() => openEdit(item)}
+                  onDelete={() => setDeleteTarget(item)}
+                />
+              ))}
+            </div>
           )}
         </div>
 
@@ -475,7 +381,7 @@ function MutualFundsContent() {
               <button
                 onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                 disabled={pageNumber === 1}
-                className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition font-medium"
+                className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition font-medium cursor-pointer"
               >
                 ← Prev
               </button>
@@ -485,7 +391,7 @@ function MutualFundsContent() {
               <button
                 onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
                 disabled={pageNumber >= totalPages}
-                className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition font-medium"
+                className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition font-medium cursor-pointer"
               >
                 Next →
               </button>
@@ -494,65 +400,85 @@ function MutualFundsContent() {
         )}
       </div>
 
-      {/* ── Create / Edit Mutual Fund Modal (Ant Design Modal) ──────────── */}
-      <Modal
-        open={Boolean(modalMode)}
-        onCancel={() => setModalMode(null)}
-        footer={null}
-        width={680}
-        centered
+      {/* ── Create / Edit Mutual Fund Drawer (Ant Design Drawer) ─────────── */}
+      <Drawer
+        open={Boolean(drawerMode)}
+        onClose={() => setDrawerMode(null)}
+        width={560}
         destroyOnClose
         maskClosable={false}
-        className="rounded-2xl overflow-hidden"
+        className="dark:bg-gray-900"
         title={
-          <div className="flex items-center gap-3 py-1 text-gray-900 dark:text-white">
-            <div className="w-9 h-9 rounded-xl bg-[#961A1C]/10 flex items-center justify-center">
-              <PieChart size={17} className="text-[#961A1C]" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                {modalMode === 'create' ? 'Create New Mutual Fund Content' : 'Edit Mutual Fund Content'}
-              </h3>
-              <p className="text-[11px] text-gray-400 font-normal mt-0.5">
-                Mutual fund details shown to retail investors in the app
-              </p>
-            </div>
+          <div className="flex items-center justify-between text-gray-900 dark:text-white">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+              {drawerMode === 'create' ? 'Add Mutual Fund' : 'Edit Mutual Fund'}
+            </h3>
           </div>
         }
       >
-        <form onSubmit={handleSubmit} className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[72vh] overflow-y-auto px-1 pt-1">
-          
-          {/* Background Sync Notice */}
-          <div className="my-3 p-3.5 rounded-xl bg-gray-900 text-white dark:bg-black border border-gray-800 shadow-xs relative overflow-hidden">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold tracking-wider uppercase text-gray-400 flex items-center gap-1.5">
-                  <Sparkles size={12} className="text-[#961A1C]" /> Background System Sync
-                </span>
-                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-mono px-1.5 py-0.5 rounded">Active</span>
-              </div>
-              <p className="text-xs text-gray-200 font-medium leading-relaxed">
-                Mutual fund parameters and yield labels are processed in the background and synced live to retail investment dashboards.
-              </p>
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
 
-          {/* Section: Product Info */}
-          <div className="py-5 space-y-4">
+          <div className="flex-1 overflow-y-auto space-y-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            
+            {/* Top Cover Image / App Card Preview */}
+            <div className="relative w-full h-48 bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex flex-col items-center justify-center group">
+              {coverImage ? (
+                <>
+                  <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover opacity-85" />
+                  <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center p-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white shadow-sm mb-1">
+                      {form.expectedYieldLabel || '14.5% p.a.'}
+                    </span>
+                    <span className="text-white font-bold text-base truncate max-w-xs">{form.displayName || 'Mutual Fund Title'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage(null)}
+                    className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 text-white hover:bg-black transition cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </>
+              ) : (
+                <label className="flex flex-col items-center justify-center cursor-pointer w-full h-full p-4 hover:bg-gray-800/60 transition text-gray-400">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2">
+                    <TrendingUp size={22} />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-200">
+                    <Upload size={14} /> Click or drop mutual fund cover image
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">App preview thumbnail placeholder (UI Only)</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setCoverImage(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* Display Name / Header */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                Display Name *
-              </label>
               <input
                 type="text"
                 value={form.displayName}
                 onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-                className={`w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] ${formErrors.displayName ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
-                placeholder="e.g. ALPHA10 DOLLAR FUND"
+                placeholder="Fund Name (e.g. Fixed Income Portfolio)"
+                className={`w-full text-xl sm:text-2xl font-bold bg-transparent text-gray-900 dark:text-white border-b-2 border-dashed focus:border-solid border-gray-300 dark:border-gray-700 py-1.5 focus:border-[#961A1C] outline-none transition placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
+                  formErrors.displayName ? 'border-red-500' : ''
+                }`}
               />
               {formErrors.displayName && <p className="text-xs text-red-500 mt-1">{formErrors.displayName}</p>}
+              <p className="text-[11px] text-gray-400 mt-1">Retail investor mobile fund card header</p>
             </div>
 
+            {/* Short Description */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                 Short Description
@@ -561,21 +487,22 @@ function MutualFundsContent() {
                 rows={2}
                 value={form.shortDescription}
                 onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
-                className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                placeholder="Short summary displayed on fund cards..."
+                className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                placeholder="Targeting long term capital appreciation through equity investments..."
               />
             </div>
 
+            {/* Yield Label & Duration Label */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Expected Yield Label
+                  Expected Yield Label (% p.a.)
                 </label>
                 <input
                   type="text"
                   value={form.expectedYieldLabel}
                   onChange={(e) => setForm({ ...form, expectedYieldLabel: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
                   placeholder="e.g. 14.5% p.a."
                 />
               </div>
@@ -588,123 +515,112 @@ function MutualFundsContent() {
                   type="text"
                   value={form.durationLabel}
                   onChange={(e) => setForm({ ...form, durationLabel: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
                   placeholder="e.g. 12 – 36 months"
                 />
               </div>
             </div>
 
+            {/* Risk Level Selector */}
+            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <Wifi size={16} className="text-[#961A1C]" />
+                <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                  Risk Profile
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {['Low Risk', 'Moderate Risk', 'High Risk', 'Very High Risk'].map((r) => {
+                  const active = form.riskLevel === r;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setForm({ ...form, riskLevel: r })}
+                      className={`flex items-center justify-center gap-1 py-2 px-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                        active
+                          ? 'bg-red-50 border-red-300 text-red-700 dark:bg-red-950/40 dark:border-red-800 dark:text-red-400 ring-2 ring-current shadow-xs'
+                          : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <Wifi size={12} className={active ? 'animate-pulse' : 'opacity-60'} />
+                      <span>{r.replace(' Risk', '')}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* How You Earn Text */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                How You Earn Text
+                How You Earn & Interest Terms
               </label>
               <textarea
                 rows={3}
                 value={form.howYouEarnText}
                 onChange={(e) => setForm({ ...form, howYouEarnText: e.target.value })}
-                className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                placeholder="Explain returns calculation and distribution..."
+                className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                placeholder="You earn as the prices of the funds in the portfolio change..."
               />
             </div>
-          </div>
 
-          {/* Section: Risk & Configurations */}
-          <div className="py-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Risk Level
-                </label>
-                <select
-                  value={form.riskLevel}
-                  onChange={(e) => setForm({ ...form, riskLevel: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
-                >
-                  <option value="Low Risk">Low Risk</option>
-                  <option value="Moderate Risk">Moderate Risk</option>
-                  <option value="High Risk">High Risk</option>
-                  <option value="Very High Risk">Very High Risk</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Display Order
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.displayOrder ?? 0}
-                  onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) })}
-                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+            {/* Switches: Recommended & Active */}
+            <div className="space-y-3">
+              {/* Featured / Recommended */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="pr-3">
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                    <Star size={14} className="text-amber-500" /> Featured / Recommended Fund
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Appears in the Recommended tab for investors</p>
+                </div>
+                <Switch
+                  checked={form.isRecommended}
+                  onChange={(checked) => setForm({ ...form, isRecommended: checked })}
                 />
               </div>
+
+              {/* Active Status */}
+              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
+                      Active
+                    </span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
+                      Retail users can now have access to this mutual fund
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.isActive}
+                    onChange={(checked) => setForm({ ...form, isActive: checked })}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setForm((prev) => ({ ...prev, isRecommended: !prev.isRecommended }));
-                }}
-                className={`flex items-center gap-2 p-3 rounded-xl border text-left cursor-pointer transition ${
-                  form.isRecommended
-                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700'
-                    : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded border flex items-center justify-center transition ${form.isRecommended ? 'bg-amber-500 border-amber-500' : 'border-gray-300 dark:border-gray-600'}`}>
-                  {form.isRecommended && <Check size={10} className="text-white" />}
-                </div>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Featured / Recommended</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setForm((prev) => ({ ...prev, isActive: !prev.isActive }));
-                }}
-                className={`flex items-center gap-2 p-3 rounded-xl border text-left cursor-pointer transition ${
-                  form.isActive
-                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700'
-                    : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <div className={`w-4 h-4 rounded border flex items-center justify-center transition ${form.isActive ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 dark:border-gray-600'}`}>
-                  {form.isActive && <Check size={10} className="text-white" />}
-                </div>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Active Status</span>
-              </button>
-            </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="py-4 flex gap-3 bg-white dark:bg-gray-900 sticky bottom-0 z-10 border-t border-gray-100 dark:border-gray-800 mt-4 pt-4">
-            <button
-              type="button"
-              onClick={() => setModalMode(null)}
-              className="flex-1 py-2.5 px-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-xl border border-gray-200 dark:border-gray-700 transition-colors text-sm cursor-pointer"
-            >
-              Cancel
-            </button>
+          {/* Sticky Bottom Action Button */}
+          <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-4 pb-1 mt-4">
             <button
               type="submit"
               disabled={isCreating || isUpdating}
-              className="flex-1 py-2.5 px-4 bg-[#961A1C] hover:bg-[#7a1517] text-white font-semibold rounded-xl transition-colors text-sm disabled:opacity-60 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              className="w-full py-3.5 px-4 bg-[#961A1C] hover:bg-[#7a1517] text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
-              {(isCreating || isUpdating)
-                ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
-                : modalMode === 'create' ? 'Create Fund' : 'Save Changes'}
+              {isCreating || isUpdating ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Check size={16} />
+              )}
+              <span>{drawerMode === 'create' ? 'Create Mutual Fund' : 'Save Changes'}</span>
             </button>
           </div>
         </form>
-      </Modal>
+      </Drawer>
 
-      {/* ── Delete Confirmation Modal (Ant Design Modal) ──────────────────── */}
+      {/* Delete confirmation (Ant Design Modal) */}
       <Modal
         open={Boolean(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
@@ -716,16 +632,13 @@ function MutualFundsContent() {
       >
         <div className="py-2 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-500">
-              <Trash2 size={24} />
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+              <Trash2 size={22} />
             </div>
           </div>
           <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Delete Mutual Fund</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-1 text-sm">
-            Are you sure you want to delete:
-          </p>
-          <p className="text-sm font-bold text-gray-800 dark:text-white mb-4">
-            &ldquo;{deleteTarget?.displayName}&rdquo;
+          <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
+            Are you sure you want to delete <strong className="text-gray-800 dark:text-white">&ldquo;{deleteTarget?.displayName}&rdquo;</strong>? This cannot be undone.
           </p>
           <div className="flex gap-3">
             <button
@@ -739,76 +652,113 @@ function MutualFundsContent() {
               disabled={isDeleting}
               className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors text-sm disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
             >
-              {isDeleting ? <><Loader2 size={14} className="animate-spin" /> Deleting…</> : 'Delete Fund'}
+              {isDeleting ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : 'Delete Fund'}
             </button>
           </div>
         </div>
       </Modal>
-
     </div>
   );
 }
 
-// ─── Stat Card Component (Matching Dashboard KPI Card Style) ─────────────────
-interface StatCardProps {
-  cardTitle: string;
-  value: string;
-  topText: string;
-  icon: React.ReactNode;
-  subText: string;
-}
-
-function StatCard({ cardTitle, value, topText, icon, subText }: StatCardProps) {
+function StatCard({
+  cardTitle, value, topText, icon, subText,
+}: { cardTitle: string; value: string; topText: string; icon: React.ReactNode; subText: string }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
-      {/* Dark Red Accent Bar */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-[#961A1C] rounded-r-md" />
-      
-      {/* Top Row */}
-      <div className="flex items-center justify-between pl-2">
-        <span className="text-xs font-semibold text-black dark:text-white">
-          {topText}
-        </span>
-        <Dropdown menu={getCardMenu(cardTitle)} trigger={['click']} placement="bottomRight">
-          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-md transition cursor-pointer">
-            <MoreHorizontal size={18} />
-          </button>
-        </Dropdown>
-      </div>
-
-      {/* Middle */}
-      <div className="my-3 pl-2">
-        <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight font-sans">
-          {value}
-        </h2>
-      </div>
-
-      {/* Bottom Row */}
-      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 pl-2 pt-1 border-t border-gray-50 dark:border-gray-700/40">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col justify-between">
+      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+        <span className="font-semibold uppercase tracking-wider text-[10px]">{cardTitle}</span>
         {icon}
-        <span>{subText}</span>
       </div>
+      <div>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{value}</p>
+        <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">{topText}</p>
+      </div>
+      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 border-t border-gray-50 dark:border-gray-800 pt-2">{subText}</p>
     </div>
   );
 }
 
-// ─── Risk Badge Component ───────────────────────────────────────────────────
-function RiskBadge({ risk }: { risk?: string }) {
-  const isHigh = risk?.toLowerCase().includes('high');
-  const isModerate = risk?.toLowerCase().includes('medium') || risk?.toLowerCase().includes('moderate');
-  
-  const color = isHigh
-    ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
-    : isModerate
-    ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800'
-    : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
-
-  const dotColor = isHigh ? 'bg-red-500' : isModerate ? 'bg-amber-500' : 'bg-emerald-500';
+function MutualFundRow({
+  item, index, onView, onEdit, onDelete,
+}: { item: MutualFundContent; index: number; onView: () => void; onEdit: () => void; onDelete: () => void }) {
+  const riskMeta = RISK_META[item.riskLevel || 'Low Risk'] ?? RISK_META['Low Risk'];
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-      {risk || 'Low Risk'}
-    </span>
+    <div className="grid grid-cols-12 gap-2 items-center px-5 py-3.5 hover:bg-gray-50/60 dark:hover:bg-gray-700/20 transition-colors group border-b border-gray-50 dark:border-gray-800/40">
+      {/* 1. S/N */}
+      <div className="col-span-12 md:col-span-1 flex justify-center">
+        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-lg px-2.5 py-1 font-mono">
+          #{item.displayOrder || index + 1}
+        </span>
+      </div>
+
+      {/* 2. Fund Product & Description Stack */}
+      <div className="col-span-12 md:col-span-4 min-w-0 flex flex-col justify-center">
+        <button
+          onClick={onView}
+          className="font-bold text-sm text-gray-900 dark:text-white hover:text-[#961A1C] dark:hover:text-[#e05557] transition-colors text-left truncate block"
+          title={item.displayName}
+        >
+          {item.displayName}
+        </button>
+        <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-sm mt-0.5">
+          {item.shortDescription || 'Alpha investment fund offering structured yields'}
+        </p>
+      </div>
+
+      {/* 3. Risk Level with Wifi icon */}
+      <div className="hidden md:flex col-span-2 justify-center items-center">
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${riskMeta.bg} ${riskMeta.color}`}>
+          <Wifi size={11} />
+          {item.riskLevel || 'Low Risk'}
+        </span>
+      </div>
+
+      {/* 4. Expected Yield & Duration */}
+      <div className="hidden md:flex col-span-2 flex-col justify-center items-center text-xs">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+          <TrendingUp size={11} /> {item.expectedYieldLabel || '14.5% p.a.'}
+        </span>
+        <span className="text-[10px] text-gray-400 mt-1">
+          {item.durationLabel || '12 – 36 months'}
+        </span>
+      </div>
+
+      {/* 5. Recommended Status */}
+      <div className="hidden md:flex col-span-1 justify-center items-center">
+        {item.isRecommended ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400" title="Featured / Recommended">
+            <Star size={13} fill="currentColor" /> Yes
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )}
+      </div>
+
+      {/* 6. Actions (View Details text + Edit & Delete icons) */}
+      <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-2">
+        <button
+          onClick={onView}
+          className="text-xs font-semibold text-[#961A1C] hover:underline cursor-pointer"
+        >
+          View Details
+        </button>
+        <button
+          onClick={onEdit}
+          className="p-1.5 text-gray-400 hover:text-[#961A1C] hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition cursor-pointer"
+          title="Edit Fund"
+        >
+          <Pencil size={14} />
+        </button>
+        <button
+          onClick={onDelete}
+          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition cursor-pointer"
+          title="Delete Fund"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
   );
 }
