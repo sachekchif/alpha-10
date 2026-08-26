@@ -3,19 +3,28 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { 
-  Select, Modal, Input, Tag, Button, Dropdown, MenuProps, message, Tooltip 
+  Select, Modal, Input, Tag, Button, Dropdown, MenuProps, message 
 } from 'antd';
 import { 
   TrendingUp, BarChart3, PieChart as PieChartIcon, Activity, Search, Filter, 
   MoreVertical, Clock, CheckCircle2, XCircle, Download, Calendar, ChevronRight,
   Plus, ArrowUpRight, ArrowDownRight, RefreshCw, DollarSign, Shield, FileText,
   User, Award, Eye, FileSpreadsheet, RotateCcw, AlertTriangle, Layers, Building2,
-  Lock, Unlock, ChevronDown, Check, UserCheck, ShieldAlert
+  Lock, Unlock, ChevronDown, Check, UserCheck, ShieldAlert, Loader2, Trash2, Pencil
 } from 'lucide-react';
 import { 
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar 
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Cell, Tooltip as RechartsTooltip 
 } from 'recharts';
+import { RoleGuard } from '@/auth/components/RoleGuard';
+import {
+  useGetInvestmentEducationsQuery,
+  useCreateInvestmentEducationMutation,
+  useUpdateInvestmentEducationMutation,
+  useDeleteInvestmentEducationMutation,
+  InvestmentEducation,
+  CreateInvestmentEducationRequest,
+} from '@/auth/services/adminApi';
+import { useToast } from '@/auth/components/ToastContainer';
 
 // --- TYPES ---
 export type InvestmentStatus = 'Pending Approval' | 'Active' | 'Matured' | 'Redeemed' | 'Cancelled';
@@ -29,7 +38,7 @@ export interface InvestmentRecord {
   customerId: string;
   accountNumber: string;
   phone: string;
-  product: ProductType;
+  product: string;
   currency: Currency;
   principal: number;
   interestRate: number;
@@ -40,6 +49,7 @@ export interface InvestmentRecord {
   maturityDate: string;
   relationshipManager: string;
   tenureMonths: number;
+  apiItem?: InvestmentEducation;
 }
 
 // --- BADGE COMPONENTS ---
@@ -82,164 +92,7 @@ export function InvestmentStateBadge({ state }: { state: InvestmentState }) {
   );
 }
 
-// --- MOCK DATA ---
-const mockInvestments: InvestmentRecord[] = [
-  {
-    id: 'INV-7721',
-    customerName: 'Oluwaseun Adeleke',
-    customerId: 'CUST-8291',
-    accountNumber: '0123456789',
-    phone: '+234 801 234 5678',
-    product: 'Fixed Deposit',
-    currency: 'NGN',
-    principal: 5000000.00,
-    interestRate: 14.5,
-    currentValue: 5362500.00,
-    status: 'Active',
-    state: 'Healthy',
-    startDate: '15 Aug 2025',
-    maturityDate: '15 Aug 2026',
-    relationshipManager: 'Sarah Jenkins',
-    tenureMonths: 12,
-  },
-  {
-    id: 'INV-7722',
-    customerName: 'Jane Smith',
-    customerId: 'CUST-8292',
-    accountNumber: '0123456790',
-    phone: '+234 802 345 6789',
-    product: 'Treasury Bills',
-    currency: 'NGN',
-    principal: 12500000.00,
-    interestRate: 18.2,
-    currentValue: 13637500.00,
-    status: 'Active',
-    state: 'Awaiting Redemption',
-    startDate: '01 Sep 2025',
-    maturityDate: '29 Jul 2026',
-    relationshipManager: 'Babajide S.',
-    tenureMonths: 12,
-  },
-  {
-    id: 'INV-7723',
-    customerName: 'TechCorp Industries Ltd',
-    customerId: 'CUST-8293',
-    accountNumber: '0123456791',
-    phone: '+234 803 456 7890',
-    product: 'Bond',
-    currency: 'NGN',
-    principal: 50000000.00,
-    interestRate: 16.0,
-    currentValue: 54000000.00,
-    status: 'Pending Approval',
-    state: 'Compliance Review',
-    startDate: '20 Jul 2026',
-    maturityDate: '20 Jul 2028',
-    relationshipManager: 'Sarah Jenkins',
-    tenureMonths: 24,
-  },
-  {
-    id: 'INV-7724',
-    customerName: 'Sarah Williams',
-    customerId: 'CUST-8294',
-    accountNumber: '0123456792',
-    phone: '+234 804 567 8901',
-    product: 'Mutual Fund',
-    currency: 'NGN',
-    principal: 2500000.00,
-    interestRate: 12.0,
-    currentValue: 2650000.00,
-    status: 'Matured',
-    state: 'Healthy',
-    startDate: '10 Jan 2025',
-    maturityDate: '10 Jul 2026',
-    relationshipManager: 'Chidinma E.',
-    tenureMonths: 6,
-  },
-  {
-    id: 'INV-7725',
-    customerName: 'David Brown Store',
-    customerId: 'CUST-8295',
-    accountNumber: '0123456793',
-    phone: '+234 805 678 9012',
-    product: 'Dollar Investment',
-    currency: 'USD',
-    principal: 45000.00,
-    interestRate: 8.5,
-    currentValue: 47868.75,
-    status: 'Active',
-    state: 'Healthy',
-    startDate: '05 May 2025',
-    maturityDate: '05 May 2026',
-    relationshipManager: 'Babajide S.',
-    tenureMonths: 12,
-  },
-  {
-    id: 'INV-7726',
-    customerName: 'Emily Davis',
-    customerId: 'CUST-8296',
-    accountNumber: '0123456794',
-    phone: '+234 806 789 0123',
-    product: 'Fixed Deposit',
-    currency: 'NGN',
-    principal: 1000000.00,
-    interestRate: 13.0,
-    currentValue: 1065000.00,
-    status: 'Redeemed',
-    state: 'Healthy',
-    startDate: '01 Nov 2024',
-    maturityDate: '01 May 2025',
-    relationshipManager: 'Sarah Jenkins',
-    tenureMonths: 6,
-  },
-  {
-    id: 'INV-7727',
-    customerName: 'Global Trade Enterprise',
-    customerId: 'CUST-8297',
-    accountNumber: '0123456795',
-    phone: '+234 807 890 1234',
-    product: 'Treasury Bills',
-    currency: 'NGN',
-    principal: 25000000.00,
-    interestRate: 17.5,
-    currentValue: 27187500.00,
-    status: 'Active',
-    state: 'Under Review',
-    startDate: '10 Feb 2026',
-    maturityDate: '10 Aug 2026',
-    relationshipManager: 'Chidinma E.',
-    tenureMonths: 6,
-  },
-  {
-    id: 'INV-7728',
-    customerName: 'Amara Nwosu',
-    customerId: 'CUST-8298',
-    accountNumber: '0123456796',
-    phone: '+234 808 901 2345',
-    product: 'Mutual Fund',
-    currency: 'NGN',
-    principal: 750000.00,
-    interestRate: 11.5,
-    currentValue: 793125.00,
-    status: 'Cancelled',
-    state: 'Disputed',
-    startDate: '12 May 2026',
-    maturityDate: '12 Nov 2026',
-    relationshipManager: 'Babajide S.',
-    tenureMonths: 6,
-  },
-];
-
-// RECHARTS COLOR PALETTES
-const STATUS_COLORS = {
-  Active: '#10B981',
-  Pending: '#F59E0B',
-  Matured: '#3B82F6',
-  Redeemed: '#8B5CF6',
-  Cancelled: '#6B7280',
-};
-
-const PRODUCT_COLORS = {
+const PRODUCT_COLORS: Record<string, string> = {
   'Fixed Deposit': '#961A1C',
   'Treasury Bills': '#3B82F6',
   'Mutual Fund': '#10B981',
@@ -284,12 +137,21 @@ const growthTrendDataMap = {
 };
 
 export default function InvestmentManagementPage() {
+  return (
+    <RoleGuard allowedRoles={['SuperAdmin', 'Control']}>
+      <InvestmentManagementContent />
+    </RoleGuard>
+  );
+}
+
+function InvestmentManagementContent() {
+  const toast = useToast();
+
   // Filters & State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<string>('All');
   const [selectedCurrency, setSelectedCurrency] = useState<string>('All');
-  const [selectedMaturity, setSelectedMaturity] = useState<string>('All');
   const [selectedRm, setSelectedRm] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('principal-desc');
   const [growthPeriod, setGrowthPeriod] = useState<'Daily' | 'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
@@ -298,30 +160,71 @@ export default function InvestmentManagementPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [redeemModalOpen, setRedeemModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<InvestmentEducation | null>(null);
   const [selectedInvestment, setSelectedInvestment] = useState<InvestmentRecord | null>(null);
 
-  // New Investment Form State
-  const [newCustName, setNewCustName] = useState('');
-  const [newCustId, setNewCustId] = useState('');
-  const [newProduct, setNewProduct] = useState<ProductType>('Fixed Deposit');
-  const [newPrincipal, setNewPrincipal] = useState('1000000');
-  const [newRate, setNewRate] = useState('14.5');
-  const [newTenure, setNewTenure] = useState('12');
+  // Form State for API dispatch
+  const [newTitle, setNewTitle] = useState('');
+  const [newCode, setNewCode] = useState('mutual_funds');
+  const [newHeroText, setNewHeroText] = useState('');
+  const [newRiskLevel, setNewRiskLevel] = useState('Low');
+  const [newCapitalGuaranteed, setNewCapitalGuaranteed] = useState(false);
+  const [newReturnsGuaranteed, setNewReturnsGuaranteed] = useState(false);
+  const [newWithdrawalRestrictions, setNewWithdrawalRestrictions] = useState(false);
+
+  // RTK Query hooks
+  const { data, isFetching, refetch } = useGetInvestmentEducationsQuery({ pageNumber: 1, pageSize: 50 });
+  const [createItem, { isLoading: isCreating }] = useCreateInvestmentEducationMutation();
+  const [deleteItem, { isLoading: isDeleting }] = useDeleteInvestmentEducationMutation();
+
+  const apiItems: InvestmentEducation[] = Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray((data?.data as any)?.items)
+    ? (data?.data as any).items
+    : [];
+
+  const maxOrder = useMemo(() => {
+    if (apiItems.length === 0) return 0;
+    return Math.max(...apiItems.map((i) => i.displayOrder ?? 0));
+  }, [apiItems]);
+
+  // Combine real API items with dashboard display schema
+  const investments: InvestmentRecord[] = useMemo(() => {
+    if (apiItems.length > 0) {
+      return apiItems.map((item, idx) => ({
+        id: item.id || `INV-${7721 + idx}`,
+        customerName: item.title || 'Investment Product',
+        customerId: `MOD-${item.code || 'SYS'}`,
+        accountNumber: `01234567${idx.toString().padStart(2, '0')}`,
+        phone: item.heroText || 'Retail Investment Offering',
+        product: item.code ? item.code.replace(/_/g, ' ').toUpperCase() : 'MUTUAL FUNDS',
+        currency: 'NGN',
+        principal: 5000000 + (idx * 2500000),
+        interestRate: item.riskLevel === 'High' ? 18.5 : item.riskLevel === 'Medium' ? 14.5 : 12.0,
+        currentValue: 5362500 + (idx * 2700000),
+        status: item.isActive ? 'Active' : 'Pending Approval',
+        state: item.capitalGuaranteed ? 'Healthy' : 'Under Review',
+        startDate: '15 Aug 2025',
+        maturityDate: '15 Aug 2026',
+        relationshipManager: 'Sarah Jenkins',
+        tenureMonths: 12,
+        apiItem: item,
+      }));
+    }
+    return [];
+  }, [apiItems]);
 
   // Filtered & Sorted Investments
   const filteredInvestments = useMemo(() => {
-    return mockInvestments.filter((inv) => {
-      // Search
+    return investments.filter((inv) => {
       const matchesSearch = 
         inv.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inv.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         inv.accountNumber.includes(searchQuery) ||
-        inv.phone.includes(searchQuery) ||
         inv.product.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Filter Dropdowns
       const matchesStatus = selectedStatus === 'All' || inv.status === selectedStatus;
-      const matchesProduct = selectedProduct === 'All' || inv.product === selectedProduct;
+      const matchesProduct = selectedProduct === 'All' || inv.product.toLowerCase().includes(selectedProduct.toLowerCase());
       const matchesCurrency = selectedCurrency === 'All' || inv.currency === selectedCurrency;
       const matchesRm = selectedRm === 'All' || inv.relationshipManager === selectedRm;
 
@@ -334,17 +237,46 @@ export default function InvestmentManagementPage() {
       if (sortBy === 'name-asc') return a.customerName.localeCompare(b.customerName);
       return 0;
     });
-  }, [searchQuery, selectedStatus, selectedProduct, selectedCurrency, selectedRm, sortBy]);
+  }, [investments, searchQuery, selectedStatus, selectedProduct, selectedCurrency, selectedRm, sortBy]);
 
-  // Handle Create Investment
-  const handleCreateInvestment = () => {
-    if (!newCustName) {
-      message.error('Please enter customer name.');
+  // Handle Create Investment via real API
+  const handleCreateInvestment = async () => {
+    if (!newTitle.trim()) {
+      toast.error('Please enter investment title.', 'Validation Error');
       return;
     }
-    message.success(`New ${newProduct} created successfully for ${newCustName}!`);
-    setCreateModalOpen(false);
-    setNewCustName('');
+    try {
+      const payload: CreateInvestmentEducationRequest = {
+        code: newCode,
+        title: newTitle.trim(),
+        heroText: newHeroText.trim(),
+        riskLevel: newRiskLevel,
+        capitalGuaranteed: newCapitalGuaranteed,
+        returnsGuaranteed: newReturnsGuaranteed,
+        withdrawalRestrictions: newWithdrawalRestrictions,
+        isActive: true,
+        displayOrder: maxOrder + 1,
+      };
+      await createItem(payload).unwrap();
+      toast.success(`Investment product "${newTitle}" created successfully.`, 'Created');
+      setCreateModalOpen(false);
+      setNewTitle('');
+      setNewHeroText('');
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Failed to create investment product.', 'Error');
+    }
+  };
+
+  // Handle Delete
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteItem(deleteTarget.id).unwrap();
+      toast.success(`Investment product deleted successfully.`, 'Deleted');
+      setDeleteTarget(null);
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Delete failed.', 'Error');
+    }
   };
 
   // Row Action Dropdown Menu
@@ -353,16 +285,8 @@ export default function InvestmentManagementPage() {
       {
         key: 'view-inv',
         label: (
-          <Link href={`/dashboard/retail/investments/${record.id}`} className="flex items-center gap-2 text-xs font-semibold text-[#961A1C]">
+          <Link href={`/dashboard/retail/investments/${record.apiItem?.id || record.id}`} className="flex items-center gap-2 text-xs font-semibold text-[#961A1C]">
             <Eye size={14} /> View Investment
-          </Link>
-        ),
-      },
-      {
-        key: 'view-cust',
-        label: (
-          <Link href={`/dashboard/retail/customers/${record.customerId}`} className="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-            <User size={14} /> View Customer
           </Link>
         ),
       },
@@ -379,41 +303,29 @@ export default function InvestmentManagementPage() {
         },
       },
       {
-        key: 'extend',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-medium text-blue-600">
-            <Calendar size={14} /> Extend Maturity
-          </span>
-        ),
-        onClick: () => message.info(`Extend maturity modal triggered for ${record.id}`),
-      },
-      {
         key: 'statement',
         label: (
           <span className="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
             <Download size={14} /> Export Statement
           </span>
         ),
-        onClick: () => message.info(`Downloading investment statement for ${record.id}...`),
-      },
-      {
-        key: 'audit',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-            <FileText size={14} /> View Audit Log
-          </span>
-        ),
-        onClick: () => message.info(`Opening audit trail for ${record.id}...`),
+        onClick: () => toast.info(`Downloading statement for ${record.id}...`, 'Export'),
       },
       { type: 'divider' },
       {
-        key: 'cancel',
+        key: 'delete-inv',
         label: (
           <span className="flex items-center gap-2 text-xs font-semibold text-red-600">
-            <XCircle size={14} /> Cancel Investment
+            <Trash2 size={14} /> Delete Product
           </span>
         ),
-        onClick: () => message.warning(`Cancellation workflow initiated for ${record.id}`),
+        onClick: () => {
+          if (record.apiItem) {
+            setDeleteTarget(record.apiItem);
+          } else {
+            toast.info('Item cannot be deleted directly.', 'Info');
+          }
+        },
       },
     ],
   });
@@ -428,21 +340,27 @@ export default function InvestmentManagementPage() {
             Investment Management
           </h1>
           <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Monitor, manage, and track all customer investments across the platform.
+            Monitor, manage, and track all retail investment offerings across the platform.
           </p>
         </div>
 
         {/* Right Actions */}
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <button
-            onClick={() => setExportModalOpen(true)}
-            className="px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-1.5 shadow-2xs"
+            onClick={() => refetch()}
+            className="px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
-            <Download size={14} /> Export Investments
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button
+            onClick={() => setExportModalOpen(true)}
+            className="px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Download size={14} /> Export
           </button>
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-lg transition flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
             <Plus size={15} /> Create Investment
           </button>
@@ -535,7 +453,7 @@ export default function InvestmentManagementPage() {
                 <button
                   key={period}
                   onClick={() => setGrowthPeriod(period)}
-                  className={`px-2 py-0.5 text-[10px] font-semibold rounded transition ${
+                  className={`px-2 py-0.5 text-[10px] font-semibold rounded transition cursor-pointer ${
                     growthPeriod === period
                       ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs'
                       : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
@@ -561,7 +479,7 @@ export default function InvestmentManagementPage() {
 
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
             <span>Growth Rate: <strong className="text-emerald-600">+18.4% YOY</strong></span>
-            <span className="text-[11px]">Updated 10m ago</span>
+            <span className="text-[11px]">Updated live</span>
           </div>
         </div>
 
@@ -650,7 +568,7 @@ export default function InvestmentManagementPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
             <input
               type="text"
-              placeholder="Search by Investment ID, Customer Name, Account No, Product, Phone..."
+              placeholder="Search by Investment ID, Title, Product Type..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
@@ -682,7 +600,6 @@ export default function InvestmentManagementPage() {
             <Filter size={13} /> Filters:
           </span>
 
-          {/* Status Filter */}
           <Select
             value={selectedStatus}
             onChange={setSelectedStatus}
@@ -698,7 +615,6 @@ export default function InvestmentManagementPage() {
             ]}
           />
 
-          {/* Product Filter */}
           <Select
             value={selectedProduct}
             onChange={setSelectedProduct}
@@ -714,7 +630,6 @@ export default function InvestmentManagementPage() {
             ]}
           />
 
-          {/* Currency Filter */}
           <Select
             value={selectedCurrency}
             onChange={setSelectedCurrency}
@@ -729,21 +644,7 @@ export default function InvestmentManagementPage() {
             ]}
           />
 
-          {/* RM Filter */}
-          <Select
-            value={selectedRm}
-            onChange={setSelectedRm}
-            size="small"
-            className="w-36"
-            options={[
-              { value: 'All', label: 'All Officers (RM)' },
-              { value: 'Sarah Jenkins', label: 'Sarah Jenkins' },
-              { value: 'Babajide S.', label: 'Babajide S.' },
-              { value: 'Chidinma E.', label: 'Chidinma E.' },
-            ]}
-          />
-
-          {(selectedStatus !== 'All' || selectedProduct !== 'All' || selectedCurrency !== 'All' || selectedRm !== 'All' || searchQuery !== '') && (
+          {(selectedStatus !== 'All' || selectedProduct !== 'All' || selectedCurrency !== 'All' || searchQuery !== '') && (
             <button
               onClick={() => {
                 setSelectedStatus('All');
@@ -752,7 +653,7 @@ export default function InvestmentManagementPage() {
                 setSelectedRm('All');
                 setSearchQuery('');
               }}
-              className="text-xs text-[#961A1C] hover:underline font-semibold ml-auto"
+              className="text-xs text-[#961A1C] hover:underline font-semibold ml-auto cursor-pointer"
             >
               Reset Filters
             </button>
@@ -761,22 +662,22 @@ export default function InvestmentManagementPage() {
 
         {/* DATA TABLE CONTAINER (HIDDEN SCROLLBAR) */}
         <div className="overflow-x-auto hide-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {filteredInvestments.length === 0 ? (
-            /* EMPTY STATE */
+          {isFetching ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-400">
+              <Loader2 size={24} className="animate-spin text-[#961A1C]" />
+              <span className="text-xs font-medium">Loading real API investments...</span>
+            </div>
+          ) : filteredInvestments.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
                 <Search size={22} />
               </div>
               <h3 className="text-base font-bold text-gray-900 dark:text-white">No investments match your filters</h3>
-              <p className="text-xs text-gray-500 max-w-sm">
-                Adjust your search parameters, status, product, or currency filters to view registered customer investments.
-              </p>
               <Button
                 onClick={() => {
                   setSelectedStatus('All');
                   setSelectedProduct('All');
                   setSelectedCurrency('All');
-                  setSelectedRm('All');
                   setSearchQuery('');
                 }}
                 className="text-xs font-semibold text-[#961A1C]"
@@ -789,7 +690,7 @@ export default function InvestmentManagementPage() {
               <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3">Investment ID</th>
-                  <th className="px-4 py-3">Customer</th>
+                  <th className="px-4 py-3">Customer / Title</th>
                   <th className="px-4 py-3">Product</th>
                   <th className="px-4 py-3">Principal</th>
                   <th className="px-4 py-3">Interest Rate</th>
@@ -797,88 +698,62 @@ export default function InvestmentManagementPage() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Operational State</th>
                   <th className="px-4 py-3">Maturity Date</th>
-                  <th className="px-4 py-3">RM</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredInvestments.map((inv) => {
-                  const sym = inv.currency === 'USD' ? '$' : inv.currency === 'GBP' ? '£' : inv.currency === 'EUR' ? '€' : '₦';
-                  return (
-                    <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition">
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/dashboard/retail/investments/${inv.id}`}
-                          className="font-mono font-bold text-[#961A1C] hover:underline"
-                        >
-                          {inv.id}
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                {filteredInvestments.map((record) => (
+                  <tr key={record.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3.5 font-mono font-bold text-[#961A1C] whitespace-nowrap">
+                      {record.id}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div>
+                        <Link href={`/dashboard/retail/investments/${record.apiItem?.id || record.id}`} className="font-semibold text-gray-900 dark:text-white hover:text-[#961A1C] transition-colors">
+                          {record.customerName}
                         </Link>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <Link
-                            href={`/dashboard/retail/customers/${inv.customerId}`}
-                            className="font-bold text-gray-900 dark:text-white hover:underline"
-                          >
-                            {inv.customerName}
-                          </Link>
-                          <span className="text-[11px] text-gray-400 font-mono">{inv.accountNumber}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <Tag color="purple" className="font-semibold text-[10px] rounded-md">
-                          {inv.product}
-                        </Tag>
-                      </td>
-
-                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">
-                        {sym}{inv.principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-
-                      <td className="px-4 py-3 font-semibold text-emerald-600">
-                        +{inv.interestRate}% p.a.
-                      </td>
-
-                      <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">
-                        {sym}{inv.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <InvestmentStatusBadge status={inv.status} />
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <InvestmentStateBadge state={inv.state} />
-                      </td>
-
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                        {inv.maturityDate}
-                      </td>
-
-                      <td className="px-4 py-3 text-gray-500">
-                        {inv.relationshipManager}
-                      </td>
-
-                      <td className="px-4 py-3 text-right">
-                        <Dropdown menu={getActionMenu(inv)} trigger={['click']} placement="bottomRight">
-                          <button className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                            <MoreVertical size={16} />
-                          </button>
-                        </Dropdown>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <p className="text-[11px] text-gray-400">{record.phone}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">{record.product}</span>
+                    </td>
+                    <td className="px-4 py-3.5 font-mono font-semibold text-gray-900 dark:text-white whitespace-nowrap">
+                      {record.currency === 'USD' ? '$' : '₦'}{record.principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200/50">
+                        {record.interestRate}% p.a.
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 font-mono font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                      {record.currency === 'USD' ? '$' : '₦'}{record.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <InvestmentStatusBadge status={record.status} />
+                    </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <InvestmentStateBadge state={record.state} />
+                    </td>
+                    <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">
+                      {record.maturityDate}
+                    </td>
+                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                      <Dropdown menu={getActionMenu(record)} trigger={['click']} placement="bottomRight">
+                        <Button type="text" size="small" className="text-gray-400 hover:text-gray-600">
+                          <MoreVertical size={16} />
+                        </Button>
+                      </Dropdown>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}
         </div>
-
       </div>
 
-      {/* --- CREATE INVESTMENT MODAL --- */}
+      {/* --- CREATE INVESTMENT MODAL WITH REAL API --- */}
       <Modal
         title={
           <div className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
@@ -889,6 +764,7 @@ export default function InvestmentManagementPage() {
         open={createModalOpen}
         onCancel={() => setCreateModalOpen(false)}
         onOk={handleCreateInvestment}
+        confirmLoading={isCreating}
         okText="Create Investment"
         okButtonProps={{ style: { backgroundColor: '#961A1C', borderColor: '#961A1C' } }}
         width={500}
@@ -897,76 +773,62 @@ export default function InvestmentManagementPage() {
         <div className="py-2 space-y-4 text-xs">
           <div>
             <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-              Customer Name <span className="text-red-500">*</span>
+              Investment Product Title <span className="text-red-500">*</span>
             </label>
             <Input
-              placeholder="e.g. Oluwaseun Adeleke"
-              value={newCustName}
-              onChange={(e) => setNewCustName(e.target.value)}
+              placeholder="e.g. Fixed Deposit High Yield Portfolio"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Customer ID / Account
+                Product Offering Type
               </label>
-              <Input
-                placeholder="CUST-8291 / 0123456789"
-                value={newCustId}
-                onChange={(e) => setNewCustId(e.target.value)}
+              <Select
+                value={newCode}
+                onChange={setNewCode}
+                className="w-full text-xs"
+                options={[
+                  { value: 'mutual_funds', label: 'Mutual Funds' },
+                  { value: 'investment_banking', label: 'Investment Banking' },
+                  { value: 'treasury_bills', label: 'Treasury Bills' },
+                  { value: 'fixed_deposit', label: 'Fixed Deposit' },
+                  { value: 'bonds', label: 'Bonds' },
+                  { value: 'eurobonds', label: 'Eurobonds' },
+                ]}
               />
             </div>
             <div>
               <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Investment Product
+                Risk Level
               </label>
               <Select
-                value={newProduct}
-                onChange={setNewProduct}
+                value={newRiskLevel}
+                onChange={setNewRiskLevel}
                 className="w-full text-xs"
                 options={[
-                  { value: 'Fixed Deposit', label: 'Fixed Deposit' },
-                  { value: 'Treasury Bills', label: 'Treasury Bills' },
-                  { value: 'Mutual Fund', label: 'Mutual Fund' },
-                  { value: 'Bond', label: 'Bond' },
-                  { value: 'Dollar Investment', label: 'Dollar Investment' },
+                  { value: 'Low', label: 'Low Risk' },
+                  { value: 'Medium', label: 'Medium Risk' },
+                  { value: 'High', label: 'High Risk' },
+                  { value: 'Very High', label: 'Very High Risk' },
                 ]}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Principal (NGN)
-              </label>
-              <Input
-                type="number"
-                value={newPrincipal}
-                onChange={(e) => setNewPrincipal(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Interest Rate (%)
-              </label>
-              <Input
-                type="number"
-                value={newRate}
-                onChange={(e) => setNewRate(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Tenure (Months)
-              </label>
-              <Input
-                type="number"
-                value={newTenure}
-                onChange={(e) => setNewTenure(e.target.value)}
-              />
-            </div>
+          <div>
+            <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              Headline Summary
+            </label>
+            <Input.TextArea
+              rows={2}
+              placeholder="Brief overview of investment returns..."
+              value={newHeroText}
+              onChange={(e) => setNewHeroText(e.target.value)}
+            />
           </div>
         </div>
       </Modal>
@@ -987,7 +849,7 @@ export default function InvestmentManagementPage() {
       >
         <div className="py-2 space-y-3 text-xs">
           <p className="text-gray-600 dark:text-gray-300">
-            Export filtered customer investment portfolio records into spreadsheet format for accounting, treasury, or compliance auditing.
+            Export filtered customer investment portfolio records into spreadsheet format.
           </p>
           <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1 font-mono text-[11px]">
             <div>Total Records: <strong>{filteredInvestments.length} Investments</strong></div>
@@ -1022,63 +884,23 @@ export default function InvestmentManagementPage() {
         </div>
       </Modal>
 
-    </div>
-  );
-}
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      <Modal
+        title="Delete Investment Product"
+        open={Boolean(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+        onOk={handleDelete}
+        confirmLoading={isDeleting}
+        okText="Delete Product"
+        okButtonProps={{ danger: true }}
+        width={400}
+        centered
+      >
+        <div className="py-2 text-xs text-gray-600 dark:text-gray-300">
+          Are you sure you want to delete investment product <strong className="text-gray-900 dark:text-white">&ldquo;{deleteTarget?.title}&rdquo;</strong>? This action will remove it from the backend API.
+        </div>
+      </Modal>
 
-// --- HELPER KPI CARD ---
-function KpiCard({ title, value, highlight, tag }: { title: string; value: string; highlight: string; tag?: string }) {
-  const barColors: Record<string, string> = {
-    red: 'bg-[#961A1C]',
-    green: 'bg-emerald-500',
-    blue: 'bg-blue-500',
-    purple: 'bg-purple-500',
-    amber: 'bg-amber-500',
-    gray: 'bg-gray-400',
-  };
-
-  return (
-    <div className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/80 shadow-2xs relative overflow-hidden flex flex-col justify-between">
-      <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] rounded-r-md ${barColors[highlight] || 'bg-[#961A1C]'}`} />
-      <div className="flex items-center justify-between pl-1.5">
-        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">{title}</span>
-        {tag && <Tag color="red" className="font-bold text-[9px] px-1 py-0">{tag}</Tag>}
-      </div>
-      <span className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight block mt-1 pl-1.5 font-sans">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-// --- HELPER PERFORMANCE CARD ---
-function PerformanceCard({ title, value, sub, color }: { title: string; value: string; sub: string; color: string }) {
-  const barColors: Record<string, string> = {
-    emerald: 'bg-emerald-500',
-    blue: 'bg-blue-500',
-    purple: 'bg-purple-500',
-    amber: 'bg-amber-500',
-    gray: 'bg-gray-400',
-    red: 'bg-[#961A1C]',
-  };
-
-  const textColors: Record<string, string> = {
-    emerald: 'text-emerald-600 dark:text-emerald-400',
-    blue: 'text-blue-600 dark:text-blue-400',
-    purple: 'text-purple-600 dark:text-purple-400',
-    amber: 'text-amber-600 dark:text-amber-400',
-    gray: 'text-gray-700 dark:text-gray-300',
-    red: 'text-[#961A1C] dark:text-red-400',
-  };
-
-  return (
-    <div className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-2xs relative overflow-hidden flex flex-col justify-between">
-      <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] rounded-r-md ${barColors[color] || 'bg-[#961A1C]'}`} />
-      <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block truncate pl-1.5">{title}</span>
-      <span className={`text-lg md:text-xl font-bold tracking-tight block mt-1 pl-1.5 ${textColors[color]}`}>
-        {value}
-      </span>
-      <span className="text-[10px] text-gray-400 block mt-0.5 pl-1.5">{sub}</span>
     </div>
   );
 }

@@ -1,761 +1,819 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-  Button, Tag, Modal, Input, message, Dropdown, MenuProps, Tooltip 
-} from 'antd';
-import { 
-  ArrowLeft, TrendingUp, Shield, Lock, Unlock, PauseCircle, RotateCcw, 
-  UserCheck, AlertTriangle, ArrowUpRight, ArrowDownRight, Eye, Download, 
-  FileText, CheckCircle2, Clock, XCircle, CreditCard, User, Building2, 
-  History, MessageSquare, Plus, AlertCircle, Trash2, Edit3, ChevronRight,
-  ShieldCheck, Layers, FileSpreadsheet, Send, HelpCircle, Ban, Settings,
-  MoreVertical, ChevronDown, Calendar, RefreshCw, Award, FileCheck, DollarSign
+import { Modal, Drawer, Select, Switch } from 'antd';
+import {
+  ArrowLeft, BookOpen, Pencil, Trash2, X, Loader2, AlertCircle,
+  Check, Shield, BarChart2, TrendingUp, Clock, Eye, Sparkles,
+  Wifi, Play, Plus, Upload, Users, Award, Zap,
 } from 'lucide-react';
-import { InvestmentStatusBadge, InvestmentStateBadge } from '../page';
+import { RoleGuard } from '@/auth/components/RoleGuard';
+import {
+  useGetInvestmentEducationQuery,
+  useUpdateInvestmentEducationMutation,
+  useDeleteInvestmentEducationMutation,
+  CreateInvestmentEducationRequest,
+} from '@/auth/services/adminApi';
+import { useToast } from '@/auth/components/ToastContainer';
 
-// MOCK DETAILED INVESTMENT DATA
-const mockInvestmentDetails: Record<string, any> = {
-  'INV-7721': {
-    id: 'INV-7721',
-    product: 'Fixed Deposit',
-    investmentType: 'Term Deposit (Compounded Quarterly)',
-    currency: 'NGN',
-    status: 'Active',
-    state: 'Healthy',
-    createdDate: '15 Aug 2025, 09:30 AM',
-    startDate: '15 Aug 2025',
-    maturityDate: '15 Aug 2026',
-    tenure: '12 Months (365 Days)',
-    daysRemaining: 17,
-    relationshipManager: 'Sarah Jenkins',
+const RISK_LEVELS = ['Low', 'Medium', 'High', 'Very High'] as const;
+type RiskLevel = typeof RISK_LEVELS[number];
 
-    // Financial Performance
-    principal: 5000000.00,
-    currentValue: 5362500.00,
-    interestRate: 14.5,
-    compoundingMethod: 'Quarterly Compounding',
-    interestEarned: 362500.00,
-    projectedMaturityValue: 5725000.00,
-    interestPaid: 0.00,
-    remainingInterest: 362500.00,
-    returnPercentage: 14.5,
-
-    // Customer Relationship
-    customer: {
-      id: 'CUST-8291',
-      name: 'Oluwaseun Adeleke',
-      type: 'Retail Individual',
-      email: 'seun.adeleke@gmail.com',
-      phone: '+234 801 234 5678',
-      primaryAccountNumber: '0123456789',
-      relationshipManager: 'Sarah Jenkins',
-    },
-
-    // Investment Schedule Timeline
-    scheduleTimeline: [
-      { event: 'Investment Account Created', date: '15 Aug 2025', amount: '₦5,000,000.00', status: 'Completed', remarks: 'Principal funds received via account transfer.' },
-      { event: 'Q1 Interest Accrued', date: '15 Nov 2025', amount: '+₦181,250.00', status: 'Completed', remarks: 'Quarterly interest accrued to ledger.' },
-      { event: 'Q2 Interest Accrued', date: '15 Feb 2026', amount: '+₦181,250.00', status: 'Completed', remarks: 'Quarterly interest accrued to ledger.' },
-      { event: 'Maturity Date Approaching', date: '15 Aug 2026', amount: '₦5,725,000.00', status: 'Upcoming', remarks: 'Scheduled maturity payout to primary account.' },
-      { event: 'Final Liquidation & Payout', date: '15 Aug 2026', amount: '₦5,725,000.00', status: 'Scheduled', remarks: 'Full redemption payout.' },
-    ],
-
-    // Transaction History
-    transactions: [
-      { id: 'TXN-881902', type: 'Investment Creation', amount: '₦5,000,000.00', channel: 'Direct Transfer', status: 'Completed', date: '15 Aug 2025, 09:30 AM' },
-      { id: 'TXN-882104', type: 'Q1 Interest Accrual', amount: '+₦181,250.00', channel: 'System Engine', status: 'Completed', date: '15 Nov 2025, 00:01 AM' },
-      { id: 'TXN-883912', type: 'Q2 Interest Accrual', amount: '+₦181,250.00', channel: 'System Engine', status: 'Completed', date: '15 Feb 2026, 00:01 AM' },
-    ],
-
-    // Operational Activity Timeline
-    activityTimeline: [
-      { date: '29 Jul 2026', time: '14:20 PM', administrator: 'SuperAdmin (You)', remarks: 'Inspected investment performance and yield schedule.' },
-      { date: '15 Feb 2026', time: '00:01 AM', administrator: 'Automated Yield Engine', remarks: 'Accrued Q2 interest of ₦181,250.00.' },
-      { date: '15 Aug 2025', time: '10:00 AM', administrator: 'Sarah Jenkins (RM)', remarks: 'Investment subscription verified and compliance approved.' },
-    ],
-
-    // Audit Trail
-    auditTrail: [
-      { timestamp: '29 Jul 2026, 14:20:00', administrator: 'SuperAdmin (You)', role: 'Global Admin', action: 'VIEW_INVESTMENT_DETAILS', reason: 'Operational audit', ipAddress: '197.210.64.12', device: 'Chrome v126 (Windows)' },
-      { timestamp: '15 Aug 2025, 10:00:00', administrator: 'Sarah Jenkins', role: 'Relationship Manager', action: 'APPROVE_INVESTMENT_SUBSCRIPTION', reason: 'Fixed Deposit Booking', ipAddress: '102.89.23.11', device: 'Safari (MacOS)' },
-    ],
-
-    // Documents
-    documents: [
-      { name: 'Investment Certificate.pdf', size: '1.2 MB', date: '15 Aug 2025', category: 'Certificate' },
-      { name: 'Customer Terms Agreement.pdf', size: '850 KB', date: '15 Aug 2025', category: 'Agreement' },
-      { name: 'Terms & Conditions (FD-2025).pdf', size: '420 KB', date: '15 Aug 2025', category: 'Terms' },
-      { name: 'Pre-Redemption Notice.pdf', size: '310 KB', date: '10 Jul 2026', category: 'Notice' },
-    ],
-
-    // Internal Admin Notes
-    initialNotes: [
-      { id: '1', author: 'Sarah Jenkins (RM)', datetime: '15 Aug 2025, 10:05 AM', text: 'Customer booked 12-month Fixed Deposit at 14.5% p.a. Maturity set to August 2026.' },
-      { id: '2', author: 'Treasury Admin', datetime: '10 Jul 2026, 11:30 AM', text: 'Pre-maturity notification sent to relationship manager.' },
-    ],
-  },
+const RISK_META: Record<RiskLevel, { color: string; bg: string; dot: string }> = {
+  Low: { color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30', dot: 'bg-emerald-500' },
+  Medium: { color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30', dot: 'bg-amber-500' },
+  High: { color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30', dot: 'bg-orange-500' },
+  'Very High': { color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30', dot: 'bg-red-500' },
 };
 
-export default function InvestmentDetailsPage() {
-  const params = useParams();
+const INVESTMENT_TYPES = [
+  { value: 'mutual_funds', label: 'Mutual Funds' },
+  { value: 'investment_banking', label: 'Investment Banking' },
+  { value: 'treasury_bills', label: 'Treasury Bills' },
+  { value: 'fixed_deposit', label: 'Fixed Deposit' },
+  { value: 'bonds', label: 'Bonds' },
+  { value: 'equities', label: 'Equities' },
+  { value: 'savings', label: 'Savings' },
+  { value: 'eurobonds', label: 'Eurobonds' },
+];
+
+const TAG_OPTIONS = [
+  { value: 'Beginner', label: 'Beginner' },
+  { value: 'Intermediate', label: 'Intermediate' },
+  { value: 'Advanced', label: 'Advanced' },
+  { value: 'Expert', label: 'Expert' },
+];
+
+const CATEGORY_OPTIONS = [
+  'Fixed Income', 'Equity', 'Money Market', 'Savings', 'Alternative', 'USD Investment', 'Investment Banking',
+];
+
+export default function InvestmentDetailPage() {
+  return (
+    <RoleGuard allowedRoles={['SuperAdmin', 'Control']}>
+      <InvestmentDetailContent />
+    </RoleGuard>
+  );
+}
+
+function InvestmentDetailContent() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const invId = (params?.id as string) || 'INV-7721';
+  const toast = useToast();
 
-  // Get data or fallback
-  const rawDetails = mockInvestmentDetails[invId] || {
-    ...mockInvestmentDetails['INV-7721'],
-    id: invId,
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState<(CreateInvestmentEducationRequest & { category?: string; tags?: string }) | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [steps, setSteps] = useState<string[]>([]);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [isConfirmDelete, setIsConfirmDelete] = useState(false);
+
+  const { data, isLoading, isError, refetch } = useGetInvestmentEducationQuery(id);
+  const [updateItem, { isLoading: isUpdating }] = useUpdateInvestmentEducationMutation();
+  const [deleteItem, { isLoading: isDeleting }] = useDeleteInvestmentEducationMutation();
+
+  const item = data?.data;
+
+  function openEdit() {
+    if (!item) return;
+    const rawSteps = item.howItWorksText
+      ? item.howItWorksText.split('\n').map((s) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean)
+      : [];
+
+    setForm({
+      code: item.code ?? 'mutual_funds',
+      title: item.title ?? '',
+      heroText: item.heroText ?? '',
+      detailsText: item.detailsText ?? '',
+      howItWorksText: item.howItWorksText ?? '',
+      riskLevel: item.riskLevel ?? 'Low',
+      capitalGuaranteed: item.capitalGuaranteed ?? false,
+      returnsGuaranteed: item.returnsGuaranteed ?? false,
+      withdrawalRestrictions: item.withdrawalRestrictions ?? false,
+      isActive: item.isActive ?? true,
+      displayOrder: item.displayOrder ?? 0,
+      category: 'Fixed Income',
+      tags: 'Intermediate',
+    });
+    setSteps(rawSteps.length > 0 ? rawSteps : ['Choose an investment product that matches your financial goals.']);
+    setCoverImage(null);
+    setFormErrors({});
+    setIsEditing(true);
+  }
+
+  function validateForm() {
+    if (!form) return false;
+    const errors: Record<string, string> = {};
+    if (!form.code.trim()) errors.code = 'Investment type is required';
+    if (!form.title.trim()) errors.title = 'Title is required';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form || !validateForm()) return;
+    try {
+      const formattedSteps = steps
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s, idx) => `${idx + 1}. ${s}`)
+        .join('\n');
+
+      const { category, tags, ...apiPayload } = form;
+      const formattedBody: CreateInvestmentEducationRequest = {
+        ...apiPayload,
+        code: form.code.trim().toLowerCase().replace(/\s+/g, '_'),
+        title: form.title.trim(),
+        heroText: form.heroText?.trim() || '',
+        detailsText: form.detailsText?.trim() || '',
+        howItWorksText: formattedSteps || form.howItWorksText?.trim() || '',
+      };
+      await updateItem({ id, body: formattedBody }).unwrap();
+      toast.success('Investment product updated successfully.', 'Updated');
+      setIsEditing(false);
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Update failed.', 'Error');
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await deleteItem(id).unwrap();
+      toast.success('Product deleted successfully.', 'Deleted');
+      router.push('/dashboard/retail/investments');
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Delete failed.', 'Delete Failed');
+    }
+  }
+
+  const risk = (item?.riskLevel || 'Low') as RiskLevel;
+  const meta = RISK_META[risk] ?? RISK_META['Low'];
+
+  const parsedSteps = item?.howItWorksText
+    ? item.howItWorksText.split('\n').filter((s) => s.trim().length > 0)
+    : [];
+
+  const formatModuleCode = (code?: string) => {
+    if (!code) return '—';
+    const found = INVESTMENT_TYPES.find((t) => t.value === code);
+    if (found) return found.label;
+    return code.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
-
-  const [investment, setInvestment] = useState(rawDetails);
-  const [notes, setNotes] = useState<any[]>(rawDetails.initialNotes);
-  const [newNoteText, setNewNoteText] = useState('');
-  
-  // Action Modals State
-  const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [actionReason, setActionReason] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Handle Add Note
-  const handleAddNote = () => {
-    if (!newNoteText.trim()) return;
-    const newNote = {
-      id: String(Date.now()),
-      author: 'SuperAdmin (You)',
-      datetime: 'Just now',
-      text: newNoteText,
-    };
-    setNotes([newNote, ...notes]);
-    setNewNoteText('');
-    message.success('Internal administrator note posted successfully.');
-  };
-
-  // Handle Action Execution
-  const handleExecuteAction = (actionName: string) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      let updatedStatus = investment.status;
-      let updatedState = investment.state;
-
-      if (actionName === 'Redeem Investment') {
-        updatedStatus = 'Redeemed';
-        updatedState = 'Healthy';
-      } else if (actionName === 'Extend Maturity') {
-        updatedStatus = 'Active';
-        updatedState = 'Healthy';
-      } else if (actionName === 'Cancel Investment') {
-        updatedStatus = 'Cancelled';
-        updatedState = 'Disputed';
-      }
-
-      setInvestment({
-        ...investment,
-        status: updatedStatus,
-        state: updatedState,
-      });
-
-      setIsSubmitting(false);
-      setActiveModal(null);
-      setActionReason('');
-      message.success(`Action "${actionName}" executed successfully for ${investment.id}.`);
-    }, 600);
-  };
-
-  // Actions Dropdown Menu
-  const getMoreMenu = (): MenuProps => ({
-    items: [
-      {
-        key: 'redeem',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
-            <RotateCcw size={14} /> Redeem Investment
-          </span>
-        ),
-        onClick: () => setActiveModal('Redeem Investment'),
-      },
-      {
-        key: 'extend',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-medium text-blue-600">
-            <Calendar size={14} /> Extend Maturity
-          </span>
-        ),
-        onClick: () => setActiveModal('Extend Maturity'),
-      },
-      {
-        key: 'cert',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-            <Award size={14} className="text-gray-500" /> Download Certificate
-          </span>
-        ),
-        onClick: () => message.info(`Downloading investment certificate for ${investment.id}...`),
-      },
-      {
-        key: 'statement',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-            <Download size={14} className="text-gray-500" /> Export Full Statement
-          </span>
-        ),
-        onClick: () => message.info(`Exporting statement for ${investment.id}...`),
-      },
-      { type: 'divider' },
-      {
-        key: 'cancel',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-semibold text-red-600">
-            <Trash2 size={14} /> Cancel Investment (Danger)
-          </span>
-        ),
-        onClick: () => setActiveModal('Cancel Investment'),
-      },
-    ],
-  });
-
-  const sym = investment.currency === 'USD' ? '$' : investment.currency === 'GBP' ? '£' : investment.currency === 'EUR' ? '€' : '₦';
 
   return (
-    <div className="h-full flex flex-col space-y-5 max-w-[1600px] mx-auto pb-12 animate-in fade-in duration-300">
-      
-      {/* 1. HEADER SECTION (DESIGNED EXACTLY LIKE CUSTOMER DETAILS PAGE) */}
-      <div className="flex flex-col space-y-3 pt-1">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 shrink-0">
-          <div className="flex flex-col">
-            
-            {/* Back Icon Link */}
-            <Link 
-              href="/dashboard/retail/investments" 
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-black dark:hover:text-white font-medium transition-colors mb-2"
-            >
-              <ArrowLeft size={16} /> Back to Investment Directory
-            </Link>
-
-            {/* Title & Inline Badges */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl md:text-4xl font-normal font-mono text-gray-900 dark:text-white tracking-tight">
-                {investment.id}
-              </h1>
-              <InvestmentStatusBadge status={investment.status} />
-              <InvestmentStateBadge state={investment.state} />
-              <Tag color="purple" className="font-semibold text-xs rounded-md">
-                {investment.product}
-              </Tag>
-              <Tag className="font-bold text-xs bg-gray-100 dark:bg-gray-700">
-                {investment.currency}
-              </Tag>
-            </div>
-
-            {/* Subtitle Details Row with Dots • */}
-            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 font-mono mt-2 flex-wrap">
-              <span className="flex items-center gap-1">
-                <span className="text-gray-400 font-sans font-medium">Customer:</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-200">{investment.customer.name}</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <span className="text-gray-400 font-sans font-medium">Principal:</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-200">{sym}{investment.principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <span className="text-gray-400 font-sans font-medium">Current Value:</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-200">{sym}{investment.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <span className="text-gray-400 font-sans font-medium">Maturity:</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-200">{investment.maturityDate}</span>
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <span className="text-gray-400 font-sans font-medium">Remaining:</span>
-                <span className="font-semibold text-emerald-600">{investment.daysRemaining} Days</span>
-              </span>
-            </div>
-
-          </div>
-          
-          {/* Action Buttons (Top Right) */}
-          <div className="flex items-center gap-2 self-start md:self-end">
-            <button
-              onClick={() => setActiveModal('Redeem Investment')}
-              className="px-3.5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition flex items-center gap-1.5 shadow-sm"
-            >
-              <RotateCcw size={14} /> Redeem Investment
-            </button>
-
-            <button
-              onClick={() => setActiveModal('Extend Maturity')}
-              className="px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center gap-1.5 shadow-2xs"
-            >
-              <Calendar size={14} className="text-blue-500" /> Extend Maturity
-            </button>
-
-            <Dropdown menu={getMoreMenu()} trigger={['click']} placement="bottomRight">
-              <button className="px-3.5 py-2 text-xs font-semibold text-white bg-black hover:bg-gray-800 rounded-lg transition flex items-center gap-1.5 shadow-sm">
-                Actions <ChevronDown size={14} />
-              </button>
-            </Dropdown>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. CONSOLIDATED HIGH-SIGNAL STAT CARDS (4 CARDS) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* CARD 1: PRINCIPAL CAPITAL */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-[#961A1C] rounded-r-md" />
-          <div className="flex items-center justify-between pl-2">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Principal Capital</span>
-            <Tag color="volcano" className="!bg-[#961A1C]/10 !text-[#961A1C] !border-none font-semibold text-[10px] m-0">Principal</Tag>
-          </div>
-          <div className="my-2 pl-2">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight font-sans">
-              {sym}{investment.principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </h2>
-          </div>
-          <div className="flex items-center justify-between text-xs text-gray-500 pl-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
-            <span>Tenure: <strong className="text-gray-800 dark:text-gray-200">{investment.tenure}</strong></span>
-          </div>
-        </div>
-
-        {/* CARD 2: CURRENT VALUE & RETURN RATE */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-emerald-500 rounded-r-md" />
-          <div className="flex items-center justify-between pl-2">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Current Value</span>
-            <Tag color="emerald" className="font-semibold text-[10px] m-0">+{investment.returnPercentage}% p.a.</Tag>
-          </div>
-          <div className="my-2 pl-2">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight font-sans">
-              {sym}{investment.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </h2>
-          </div>
-          <div className="flex items-center justify-between text-xs text-gray-500 pl-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
-            <span>Yield Rate: <strong className="text-emerald-600">+{investment.returnPercentage}% p.a.</strong></span>
-          </div>
-        </div>
-
-        {/* CARD 3: ACCRUED YIELD & PROJECTED MATURITY */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-blue-500 rounded-r-md" />
-          <div className="flex items-center justify-between pl-2">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Interest Accrued</span>
-            <Tag color="blue" className="font-semibold text-[10px] m-0">Yield Earned</Tag>
-          </div>
-          <div className="my-2 pl-2">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight font-sans">
-              {sym}{investment.interestEarned.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </h2>
-          </div>
-          <div className="flex items-center justify-between text-xs text-gray-500 pl-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
-            <span>Projected Payout: <strong className="text-purple-600">{sym}{investment.projectedMaturityValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
-          </div>
-        </div>
-
-        {/* CARD 4: MATURITY COUNTDOWN */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-amber-500 rounded-r-md" />
-          <div className="flex items-center justify-between pl-2">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Maturity Countdown</span>
-            <Tag color="volcano" className="font-bold text-[10px] m-0">Maturity</Tag>
-          </div>
-          <div className="my-2 pl-2 flex items-baseline gap-2">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight font-sans">
-              {investment.daysRemaining} Days
-            </h2>
-          </div>
-          <div className="flex items-center justify-between text-xs text-gray-500 pl-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
-            <span>Maturity Date: <strong className="text-gray-800 dark:text-gray-200">{investment.maturityDate}</strong></span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* MAIN TWO-COLUMN LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
-        
-        {/* LEFT COLUMN */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* SECTION 1 — INVESTMENT INFORMATION */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-3 mb-4 flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <FileText size={18} className="text-[#961A1C]" />
-                Investment Information
-              </span>
-              <button
-                onClick={() => setActiveModal('Extend Maturity')}
-                className="text-xs font-semibold text-[#961A1C] hover:underline flex items-center gap-1"
-              >
-                <Edit3 size={13} /> Modify Terms
-              </button>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-xs">
-              <InfoRow label="Investment ID" value={<span className="font-mono font-bold text-[#961A1C]">{investment.id}</span>} />
-              <InfoRow label="Investment Product" value={investment.product} />
-              <InfoRow label="Investment Type" value={investment.investmentType} />
-              <InfoRow label="Currency" value={`${investment.currency} (ISO Code)`} />
-              <InfoRow label="Principal Amount" value={<span className="font-bold text-gray-900 dark:text-white">{sym}{investment.principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>} />
-              <InfoRow label="Interest Rate" value={<span className="font-bold text-emerald-600">+{investment.interestRate}% p.a.</span>} />
-              <InfoRow label="Compounding Method" value={investment.compoundingMethod} />
-              <InfoRow label="Lifecycle Status" value={<InvestmentStatusBadge status={investment.status} />} />
-              <InfoRow label="Operational State" value={<InvestmentStateBadge state={investment.state} />} />
-              <InfoRow label="Created Date" value={investment.createdDate} />
-              <InfoRow label="Start Date" value={investment.startDate} />
-              <InfoRow label="Maturity Date" value={investment.maturityDate} />
-              <InfoRow label="Investment Tenure" value={investment.tenure} />
-              <InfoRow label="Relationship Manager" value={investment.relationshipManager} />
-            </div>
-          </div>
-
-          {/* SECTION 3 — CUSTOMER RELATIONSHIP */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3 mb-4">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <User size={18} className="text-[#961A1C]" />
-                Customer Relationship
-              </h3>
-              <Link
-                href={`/dashboard/retail/customers/${investment.customer.id}`}
-                className="flex items-center gap-1 bg-[#961A1C] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#7a1517] transition shadow-xs"
-              >
-                View Customer Profile <ChevronRight size={14} />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1">
-                <span className="text-gray-400 font-medium text-[11px] block">Customer Name</span>
-                <span className="font-bold text-gray-900 dark:text-white block text-sm">{investment.customer.name}</span>
-                <span className="text-gray-400 text-[11px] font-mono">{investment.customer.id}</span>
-              </div>
-
-              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1">
-                <span className="text-gray-400 font-medium text-[11px] block">Primary Bank Account</span>
-                <span className="font-mono font-bold text-gray-900 dark:text-white block">{investment.customer.primaryAccountNumber} (Alpha 10)</span>
-                <span className="text-gray-400 text-[11px]">{investment.customer.type}</span>
-              </div>
-
-              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1">
-                <span className="text-gray-400 font-medium text-[11px] block">Assigned Relationship Manager</span>
-                <span className="font-bold text-gray-900 dark:text-white block">{investment.customer.relationshipManager}</span>
-                <span className="text-emerald-600 font-semibold text-[11px]">Primary Officer</span>
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION 4 — INVESTMENT SCHEDULE TIMELINE */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-3 mb-4 flex items-center gap-2">
-              <Calendar size={18} className="text-[#961A1C]" />
-              Investment Schedule & Yield Timeline
-            </h3>
-
-            <div className="relative pl-6 space-y-5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200 dark:before:bg-gray-700">
-              {investment.scheduleTimeline.map((item: any, idx: number) => (
-                <div key={idx} className="relative group">
-                  <div className={`absolute -left-6 top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-800 ${item.status === 'Completed' ? 'bg-emerald-500' : item.status === 'Upcoming' ? 'bg-[#961A1C]' : 'bg-gray-400'}`} />
-                  <div className="bg-gray-50 dark:bg-gray-700/40 p-3 rounded-xl space-y-1">
-                    <div className="flex items-center justify-between flex-wrap gap-1">
-                      <span className="font-bold text-xs text-gray-900 dark:text-white">{item.event}</span>
-                      <span className="text-[11px] font-bold text-[#961A1C]">{item.amount}</span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-300">{item.remarks}</p>
-                    <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1">
-                      <span>Date: <strong className="text-gray-700 dark:text-gray-200">{item.date}</strong></span>
-                      <Tag color={item.status === 'Completed' ? 'success' : item.status === 'Upcoming' ? 'warning' : 'default'} className="font-semibold text-[10px] uppercase">
-                        {item.status}
-                      </Tag>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* SECTION 5 — TRANSACTION HISTORY (HIDDEN SCROLLBAR) */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <CreditCard size={18} className="text-[#961A1C]" />
-                Financial Transaction History
-              </h3>
-              <button
-                onClick={() => message.info('Downloading full statement...')}
-                className="text-xs font-semibold text-[#961A1C] hover:underline flex items-center gap-1"
-              >
-                View Full Statement <ChevronRight size={14} />
-              </button>
-            </div>
-
-            <div className="overflow-x-auto hide-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
-                  <tr>
-                    <th className="px-5 py-3">Reference</th>
-                    <th className="px-5 py-3">Type</th>
-                    <th className="px-5 py-3">Amount</th>
-                    <th className="px-5 py-3">Channel</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {investment.transactions.map((txn: any) => (
-                    <tr key={txn.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition">
-                      <td className="px-5 py-3 font-mono font-bold text-gray-900 dark:text-white">{txn.id}</td>
-                      <td className="px-5 py-3 font-medium">{txn.type}</td>
-                      <td className="px-5 py-3 font-bold text-emerald-600">{txn.amount}</td>
-                      <td className="px-5 py-3 text-gray-500">{txn.channel}</td>
-                      <td className="px-5 py-3">
-                        <Tag color="success" className="font-semibold text-[10px]">{txn.status}</Tag>
-                      </td>
-                      <td className="px-5 py-3 text-gray-400 whitespace-nowrap">{txn.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* SECTION 7 — ADMINISTRATIVE AUDIT TRAIL (HIDDEN SCROLLBAR) */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-3 mb-4 flex items-center gap-2">
-              <ShieldCheck size={18} className="text-[#961A1C]" />
-              Administrative Compliance Audit Trail
-            </h3>
-
-            <div className="overflow-x-auto hide-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
-                  <tr>
-                    <th className="px-4 py-2.5">Timestamp</th>
-                    <th className="px-4 py-2.5">Administrator</th>
-                    <th className="px-4 py-2.5">Role</th>
-                    <th className="px-4 py-2.5">Action</th>
-                    <th className="px-4 py-2.5">Reason</th>
-                    <th className="px-4 py-2.5">IP Address</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800 font-mono">
-                  {investment.auditTrail.map((audit: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
-                      <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{audit.timestamp}</td>
-                      <td className="px-4 py-2.5 font-sans font-bold text-gray-900 dark:text-white">{audit.administrator}</td>
-                      <td className="px-4 py-2.5 font-sans text-gray-500">{audit.role}</td>
-                      <td className="px-4 py-2.5 font-bold text-[#961A1C]">{audit.action}</td>
-                      <td className="px-4 py-2.5 font-sans text-gray-600 dark:text-gray-300">{audit.reason}</td>
-                      <td className="px-4 py-2.5 text-gray-400">{audit.ipAddress}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* SECTION 8 — SUPPORTING DOCUMENTS */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs space-y-4">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-3 flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <FileCheck size={18} className="text-[#961A1C]" />
-                Supporting Investment Documents
-              </span>
-              <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full font-bold">
-                {investment.documents.length} Files
-              </span>
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {investment.documents.map((doc: any, idx: number) => (
-                <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center font-bold">
-                      PDF
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-900 dark:text-white">{doc.name}</div>
-                      <div className="text-[11px] text-gray-400">{doc.size} • {doc.date}</div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => message.info(`Downloading ${doc.name}...`)}
-                    className="p-1.5 text-gray-500 hover:text-[#961A1C] transition rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    <Download size={15} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="lg:col-span-4 space-y-6">
-
-          {/* SECTION 6 — INVESTMENT ACTIVITY TIMELINE */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-3 mb-4 flex items-center gap-2">
-              <History size={18} className="text-[#961A1C]" />
-              Operational Activity Timeline
-            </h3>
-
-            <div className="relative pl-6 space-y-5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200 dark:before:bg-gray-700">
-              {investment.activityTimeline.map((item: any, idx: number) => (
-                <div key={idx} className="relative group">
-                  <div className="absolute -left-6 top-1 w-3 h-3 rounded-full bg-[#961A1C] ring-4 ring-white dark:ring-gray-800" />
-                  <div className="bg-gray-50 dark:bg-gray-700/40 p-3 rounded-xl space-y-1">
-                    <div className="flex items-center justify-between flex-wrap gap-1">
-                      <span className="font-bold text-xs text-gray-900 dark:text-white">{item.administrator}</span>
-                      <span className="text-[11px] text-gray-400">{item.date} at {item.time}</span>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{item.remarks}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* SECTION 9 — INTERNAL ADMIN NOTES */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs space-y-4">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
-              <span className="flex items-center gap-2">
-                <MessageSquare size={18} className="text-[#961A1C]" />
-                Internal Admin Notes
-              </span>
-              <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full font-bold">
-                {notes.length}
-              </span>
-            </h3>
-
-            {/* Form */}
-            <div className="space-y-2">
-              <Input.TextArea
-                rows={3}
-                placeholder="Add an internal administrator note (e.g. customer requested pre-maturity extension)..."
-                value={newNoteText}
-                onChange={(e) => setNewNoteText(e.target.value)}
-                className="text-xs"
-              />
-              <Button
-                type="primary"
-                icon={<Send size={13} />}
-                onClick={handleAddNote}
-                style={{ backgroundColor: '#961A1C', borderColor: '#961A1C' }}
-                className="!bg-[#961A1C] font-semibold text-xs h-8 rounded-lg w-full flex items-center justify-center gap-1"
-              >
-                Post Internal Note
-              </Button>
-            </div>
-
-            {/* Notes List */}
-            <div className="space-y-3 pt-2">
-              {notes.map((note) => (
-                <div key={note.id} className="p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl space-y-1 border border-gray-100 dark:border-gray-700">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <strong className="text-gray-900 dark:text-white">{note.author}</strong>
-                    <span className="text-gray-400">{note.datetime}</span>
-                  </div>
-                  <p className="text-xs text-gray-700 dark:text-gray-200 leading-relaxed">{note.text}</p>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* --- ACTION CONFIRMATION MODALS --- */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
-            <AlertTriangle className={activeModal?.includes('Cancel') ? 'text-red-500' : 'text-amber-500'} size={20} />
-            Confirm Operational Action: {activeModal}
-          </div>
-        }
-        open={activeModal !== null}
-        onCancel={() => setActiveModal(null)}
-        footer={[
-          <Button key="cancel" onClick={() => setActiveModal(null)}>
-            Cancel
-          </Button>,
-          <Button
-            key="confirm"
-            type="primary"
-            danger={activeModal?.includes('Cancel')}
-            loading={isSubmitting}
-            onClick={() => handleExecuteAction(activeModal || '')}
-            className="font-semibold"
+    <div className="flex flex-col gap-6 pb-12 w-full animate-in fade-in duration-500">
+      {/* ── Top Header Section (No background & simplified) ───────────── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-transparent pb-3 border-b border-gray-200/60 dark:border-gray-800">
+        <div>
+          <button
+            onClick={() => router.push('/dashboard/retail/investments')}
+            className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 font-medium transition-colors mb-1.5 cursor-pointer"
           >
-            Confirm & Execute
-          </Button>,
-        ]}
-        width={460}
-        centered
-      >
-        {activeModal && (
-          <div className="py-2 space-y-3 text-xs">
-            <p className="text-gray-700 dark:text-gray-300">
-              You are executing <strong>{activeModal}</strong> for investment <strong className="text-[#961A1C]">{investment.id}</strong> belonging to <strong>{investment.customer.name}</strong>.
+            <ArrowLeft size={14} /> Back to Investment Products
+          </button>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+            {item?.title || 'Loading Product Details...'}
+          </h1>
+          {item && (
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1">
+              {formatModuleCode(item.code)}
             </p>
+          )}
+        </div>
 
-            <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Reason for Action / Treasury Reference <span className="text-red-500">*</span>
-              </label>
-              <Input.TextArea
-                rows={3}
-                placeholder="Enter administrative reason or treasury approval ticket reference..."
-                value={actionReason}
-                onChange={(e) => setActionReason(e.target.value)}
-              />
-            </div>
+        {item && (
+          <div className="flex items-center gap-2 self-end sm:self-center">
+            <button
+              onClick={openEdit}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition cursor-pointer"
+            >
+              <Pencil size={14} /> Edit Product
+            </button>
+            <button
+              onClick={() => setIsConfirmDelete(true)}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition cursor-pointer"
+            >
+              <Trash2 size={14} /> Delete
+            </button>
           </div>
         )}
+      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
+          <Loader2 size={28} className="animate-spin text-[#961A1C]" />
+          <span className="text-sm font-medium">Loading investment product analysis...</span>
+        </div>
+      ) : isError || !item ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 flex flex-col items-center gap-3 text-gray-400">
+          <AlertCircle size={28} className="text-[#961A1C]" />
+          <p className="text-sm font-medium">Failed to load investment details.</p>
+          <button onClick={() => refetch()} className="text-xs text-[#961A1C] hover:underline font-semibold">Try again</button>
+        </div>
+      ) : (
+        /* ── 70% / 30% Split Layout ──────────────────────────────────── */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+
+          {/* ── 70% Left Main Content Area (lg:col-span-8) ───────────── */}
+          <div className="lg:col-span-8 space-y-6">
+
+            {/* Level Badge & Video Cover Media Box */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
+                  Intermediate
+                </span>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                  <Wifi size={12} />
+                  {item.riskLevel || 'Low'}
+                </span>
+              </div>
+
+              <div className="relative w-full h-64 sm:h-80 bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex items-center justify-center shadow-sm group">
+                <div className="w-16 h-16 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition cursor-pointer">
+                  <Play size={28} className="ml-1 fill-white" />
+                </div>
+                <div className="absolute bottom-4 left-4 text-xs font-semibold text-white/90 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
+                  12 min watch · Retail investor mobile hero video preview
+                </div>
+              </div>
+            </div>
+
+            {/* Title Heading & Description Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 space-y-4 shadow-xs">
+              <div>
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                  Product Headline & Hero Summary
+                </span>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-snug">
+                  {item.title}
+                </h2>
+                {item.heroText && (
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 leading-relaxed bg-gray-50 dark:bg-gray-900/40 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800">
+                    {item.heroText}
+                  </p>
+                )}
+              </div>
+
+              {item.detailsText && (
+                <div>
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
+                    Comprehensive Investment Details
+                  </span>
+                  <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-2">
+                    {item.detailsText}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* How It Works Connected Steps */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 shadow-xs">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                How It Works — Step-by-Step Investor Guide
+              </h3>
+
+              {parsedSteps.length > 0 ? (
+                <div className="relative pl-6 space-y-4">
+                  {parsedSteps.length > 1 && (
+                    <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                  )}
+                  {parsedSteps.map((step, idx) => (
+                    <div key={idx} className="relative flex items-center gap-3">
+                      <div className="absolute -left-6 z-10 w-6 h-6 rounded-full bg-[#961A1C] text-white text-xs font-bold flex items-center justify-center shadow-xs">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
+                        {step.replace(/^\d+\.\s*/, '')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : item.howItWorksText ? (
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {item.howItWorksText}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">No step-by-step guide provided for this investment product yet.</p>
+              )}
+            </div>
+
+          </div>
+
+          {/* ── 30% Right Sidebar: Analytics & Conditions (lg:col-span-4) ─ */}
+          <div className="lg:col-span-4 space-y-6">
+
+            {/* Engagement & Viewer Analytics */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 space-y-4 shadow-xs">
+              <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
+                <BarChart2 size={16} className="text-[#961A1C]" />
+                <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                  Product Engagement Analysis
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                    <Users size={13} />
+                    <span className="text-[10px] font-semibold uppercase">Total Viewers</span>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">48,200</p>
+                  <p className="text-[10px] text-emerald-600 font-medium">+18% this month</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                    <Award size={13} />
+                    <span className="text-[10px] font-semibold uppercase">Completion</span>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">71.4%</p>
+                  <p className="text-[10px] text-emerald-600 font-medium">+4.2% completion</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                    <Clock size={13} />
+                    <span className="text-[10px] font-semibold uppercase">Avg Watch Time</span>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">4.2 min</p>
+                  <p className="text-[10px] text-gray-400 font-medium">Per session</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                    <Zap size={13} />
+                    <span className="text-[10px] font-semibold uppercase">Active Now</span>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">1,420</p>
+                  <p className="text-[10px] text-emerald-600 font-medium">Viewing live</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Separate Cards for Capital, ROI, and Withdrawal */}
+            <div className="space-y-3">
+              {/* Capital Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Capital Requirement</span>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Would the user need capital to understand this lecture?
+                  </p>
+                </div>
+                <div>
+                  {item.capitalGuaranteed ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check size={14} className="stroke-[3]" /> Capital Guaranteed
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
+                      <X size={14} className="stroke-[2.5]" /> No Capital Needed
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* ROI Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">ROI & Returns</span>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    The customer would get ROI after taking this lecture
+                  </p>
+                </div>
+                <div>
+                  {item.returnsGuaranteed ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check size={14} className="stroke-[3]" /> ROI Guaranteed
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
+                      <X size={14} className="stroke-[2.5]" /> No ROI Guaranteed
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Withdrawal Restrictions Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Withdrawal Restrictions</span>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Would the user have restrictions on withdrawal?
+                  </p>
+                </div>
+                <div>
+                  {item.withdrawalRestrictions ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                      <X size={14} className="stroke-[2.5]" /> Restricted Withdrawal
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check size={14} className="stroke-[3]" /> Flexible Withdrawal
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Risk Profile Card */}
+            <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wifi size={15} className="text-[#961A1C]" />
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                    Risk Level Profile
+                  </span>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                  {item.riskLevel || 'Low'}
+                </span>
+              </div>
+            </div>
+
+            {/* Active Status Card */}
+            <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
+                    Active
+                  </span>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
+                    Retail users can now have access to this investment product
+                  </p>
+                </div>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* Edit Drawer (Ant Design Drawer) */}
+      <Drawer
+        open={Boolean(isEditing && form)}
+        onClose={() => setIsEditing(false)}
+        width={560}
+        destroyOnClose
+        maskClosable={false}
+        className="dark:bg-gray-900"
+        title={
+          <div className="flex items-center justify-between text-gray-900 dark:text-white">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+              Edit Investment Product
+            </h3>
+          </div>
+        }
+      >
+        {form && (
+          <form onSubmit={handleUpdate} className="flex flex-col h-full">
+
+            <div className="flex-1 overflow-y-auto space-y-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              {/* Cover Image Uploading & Preview Area */}
+              <div className="relative w-full h-48 bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex flex-col items-center justify-center group">
+                {coverImage ? (
+                  <>
+                    <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover opacity-85" />
+                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
+                        <Play size={20} className="ml-1 fill-white" />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCoverImage(null)}
+                      className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 text-white hover:bg-black transition cursor-pointer"
+                    >
+                      <X size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <label className="flex flex-col items-center justify-center cursor-pointer w-full h-full p-4 hover:bg-gray-800/60 transition text-gray-400">
+                    <div className="w-12 h-12 rounded-full bg-red-600/20 text-[#961A1C] flex items-center justify-center mb-2">
+                      <Play size={20} className="ml-1 fill-[#961A1C]" />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-200">
+                      <Upload size={14} /> Click or drop cover media thumbnail
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">App thumbnail preview placeholder (UI Only)</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setCoverImage(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Tag Badge Display & Dropdown */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
+                  {form.tags || 'Intermediate'}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-medium">Tag Level:</span>
+                  <Select
+                    value={form.tags || 'Intermediate'}
+                    onChange={(val) => setForm({ ...form, tags: val })}
+                    options={TAG_OPTIONS}
+                    className="w-36 text-xs"
+                    size="small"
+                  />
+                </div>
+              </div>
+
+              {/* Title Field (Large heading style like on app) */}
+              <div>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="Product Title (e.g. Fixed Deposit Portfolio)"
+                  className={`w-full text-xl sm:text-2xl font-bold bg-transparent text-gray-900 dark:text-white border-b-2 border-dashed focus:border-solid border-gray-300 dark:border-gray-700 py-1.5 focus:border-[#961A1C] outline-none transition placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
+                    formErrors.title ? 'border-red-500' : ''
+                  }`}
+                />
+                {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
+                <p className="text-[11px] text-gray-400 mt-1">Retail investor app header</p>
+              </div>
+
+              {/* Education / Investment Type Dropdown & Category Type Dropdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Education Type *
+                  </label>
+                  <Select
+                    value={form.code || 'mutual_funds'}
+                    onChange={(val) => setForm({ ...form, code: val })}
+                    options={INVESTMENT_TYPES}
+                    className="w-full"
+                  />
+                  {formErrors.code && <p className="text-xs text-red-500 mt-1">{formErrors.code}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Category Type
+                  </label>
+                  <Select
+                    value={form.category || CATEGORY_OPTIONS[0]}
+                    onChange={(val) => setForm({ ...form, category: val })}
+                    options={CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Hero & Overview Text */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Hero Headline
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={form.heroText}
+                    onChange={(e) => setForm({ ...form, heroText: e.target.value })}
+                    className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                    placeholder="Investment product summary..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Full Details & Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={form.detailsText}
+                    onChange={(e) => setForm({ ...form, detailsText: e.target.value })}
+                    className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                    placeholder="On Alpha10, mutual funds and fixed deposits are a good starting point..."
+                  />
+                </div>
+              </div>
+
+              {/* How It Works Section - Connected Steps */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                    How It Works (Steps)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setSteps([...steps, ''])}
+                    className="flex items-center gap-1 text-xs text-[#961A1C] hover:underline font-semibold cursor-pointer"
+                  >
+                    <Plus size={13} /> Add Step
+                  </button>
+                </div>
+
+                <div className="relative pl-6 space-y-4">
+                  {steps.length > 1 && (
+                    <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                  )}
+
+                  {steps.map((stepText, idx) => (
+                    <div key={idx} className="relative flex items-center gap-3 group">
+                      <div className="absolute -left-6 z-10 w-6 h-6 rounded-full bg-[#961A1C] text-white text-xs font-bold flex items-center justify-center shadow-xs">
+                        {idx + 1}
+                      </div>
+
+                      <div className="flex-1 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={stepText}
+                          onChange={(e) => {
+                            const updated = [...steps];
+                            updated[idx] = e.target.value;
+                            setSteps(updated);
+                          }}
+                          placeholder={`Step ${idx + 1} description...`}
+                          className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                        />
+                        {steps.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setSteps(steps.filter((_, i) => i !== idx))}
+                            className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Risk Level with Wifi icon */}
+              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wifi size={16} className="text-[#961A1C]" />
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                    Risk Level
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {RISK_LEVELS.map((r) => {
+                    const active = form.riskLevel === r;
+                    const wifiColors: Record<RiskLevel, string> = {
+                      Low: 'text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800',
+                      Medium: 'text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800',
+                      High: 'text-orange-700 bg-orange-50 border-orange-300 dark:bg-orange-950/40 dark:border-orange-800',
+                      'Very High': 'text-red-700 bg-red-50 border-red-300 dark:bg-red-950/40 dark:border-red-800',
+                    };
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setForm({ ...form, riskLevel: r })}
+                        className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                          active
+                            ? `${wifiColors[r]} ring-2 ring-current shadow-xs`
+                            : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        <Wifi size={13} className={active ? 'animate-pulse' : 'opacity-60'} />
+                        <span>{r}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Capital, Returns, Withdrawal Questions */}
+              <div className="space-y-3">
+                {/* Capital */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <div className="pr-3">
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                      Would the user need capital to understand this lecture?
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Capital Guaranteed</p>
+                  </div>
+                  <Switch
+                    checked={form.capitalGuaranteed}
+                    onChange={(checked) => setForm({ ...form, capitalGuaranteed: checked })}
+                  />
+                </div>
+
+                {/* Returns */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <div className="pr-3">
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                      The customer would get ROI after taking this lecture
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Returns Guaranteed</p>
+                  </div>
+                  <Switch
+                    checked={form.returnsGuaranteed}
+                    onChange={(checked) => setForm({ ...form, returnsGuaranteed: checked })}
+                  />
+                </div>
+
+                {/* Withdrawal */}
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <div className="pr-3">
+                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                      Would the user have restrictions on withdrawal?
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Withdrawal Restrictions</p>
+                  </div>
+                  <Switch
+                    checked={form.withdrawalRestrictions}
+                    onChange={(checked) => setForm({ ...form, withdrawalRestrictions: checked })}
+                  />
+                </div>
+              </div>
+
+              {/* Active Status Section */}
+              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
+                      Active
+                    </span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
+                      Retail users can now have access to this investment product
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.isActive}
+                    onChange={(checked) => setForm({ ...form, isActive: checked })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky Bottom Action Button */}
+            <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-4 pb-1 mt-4">
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="w-full py-3.5 px-4 bg-[#961A1C] hover:bg-[#7a1517] text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              >
+                {isUpdating ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Check size={16} />
+                )}
+                <span>Save Changes</span>
+              </button>
+            </div>
+          </form>
+        )}
+      </Drawer>
+
+      {/* Delete confirmation (Ant Design Modal) */}
+      <Modal
+        open={Boolean(isConfirmDelete)}
+        onCancel={() => setIsConfirmDelete(false)}
+        footer={null}
+        width={420}
+        centered
+        destroyOnClose
+        maskClosable={false}
+      >
+        <div className="py-2 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+              <Trash2 size={22} />
+            </div>
+          </div>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Delete Product</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
+            Are you sure you want to delete <strong className="text-gray-800 dark:text-white">&ldquo;{item?.title}&rdquo;</strong>? This cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsConfirmDelete(false)}
+              className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-xl transition-colors text-sm cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors text-sm disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {isDeleting ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : 'Delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
-
-    </div>
-  );
-}
-
-// --- HELPER STAT CARD ---
-function StatCard({ title, value, highlight }: { title: string; value: string; highlight: string }) {
-  const barColors: Record<string, string> = {
-    red: 'bg-[#961A1C]',
-    green: 'bg-emerald-500',
-    blue: 'bg-blue-500',
-    purple: 'bg-purple-500',
-    amber: 'bg-amber-500',
-    gray: 'bg-gray-400',
-  };
-
-  return (
-    <div className="bg-white dark:bg-gray-800 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700/80 shadow-2xs relative overflow-hidden flex flex-col justify-between">
-      <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] rounded-r-md ${barColors[highlight] || 'bg-[#961A1C]'}`} />
-      <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 block truncate pl-1.5">{title}</span>
-      <span className="text-base font-bold text-gray-900 dark:text-white tracking-tight block mt-1 pl-1.5 font-sans">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-// --- HELPER INFO ROW ---
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-gray-50 dark:border-gray-700/40 gap-1">
-      <span className="text-gray-500 dark:text-gray-400 font-medium">{label}</span>
-      <span className="font-semibold text-gray-900 dark:text-white text-right">{value}</span>
     </div>
   );
 }
