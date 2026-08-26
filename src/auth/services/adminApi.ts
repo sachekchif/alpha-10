@@ -27,9 +27,11 @@ export interface AdminUser {
 }
 
 export interface AdminUsersResponse {
+  users?: AdminUser[];
   items?: AdminUser[];
   data?: AdminUser[];
   totalCount?: number;
+  page?: number;
   pageNumber?: number;
   pageSize?: number;
 }
