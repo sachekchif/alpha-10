@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from 'antd';
 import { Loader2, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { RoleGuard } from '@/auth/components/RoleGuard';
@@ -29,8 +29,6 @@ function RetailSettingsContent() {
   const {
     data: glData,
     isLoading: isGlLoading,
-    isError: isGlError,
-    error: glFetchError,
     refetch: refetchGLs,
   } = useGetRetailGLsQuery();
 
@@ -60,8 +58,6 @@ function RetailSettingsContent() {
   const {
     data: systemDateData,
     isLoading: isDateLoading,
-    isError: isDateError,
-    error: dateFetchError,
     refetch: refetchDate,
   } = useGetSystemDateQuery();
 
@@ -123,11 +119,11 @@ function RetailSettingsContent() {
   const dateDriftDays = calculateDateDrift(todayCalendarDate, systemDateInput);
 
   return (
-    <div className="flex flex-col gap-6 pb-16 w-full max-w-5xl mx-auto font-sans">
+    <div className="flex flex-col gap-6 pb-16 w-full font-sans">
       
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="pb-4 border-b border-gray-200 dark:border-gray-800">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight uppercase font-mono">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight uppercase font-mono">
           Retail Controls & CORE Settings
         </h1>
         <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1">
@@ -135,8 +131,8 @@ function RetailSettingsContent() {
         </p>
       </div>
 
-      {/* ── PANEL 1: Retail Cash-Inflow GL Mapping (Neutral/Monochrome) ──────── */}
-      <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xs overflow-hidden">
+      {/* ── PANEL 1: Retail Cash-Inflow GL Mapping (Full Width) ──────────────── */}
+      <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xs overflow-hidden w-full">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-900/30 flex items-center justify-between">
           <div>
             <h2 className="text-xs font-mono font-bold tracking-wider uppercase text-gray-900 dark:text-white">
@@ -175,7 +171,7 @@ function RetailSettingsContent() {
               <span>Fetching GL account mappings...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               
               {/* Mutual Funds GL */}
               <GLFieldInput
@@ -229,7 +225,7 @@ function RetailSettingsContent() {
       </section>
 
       {/* ── PANEL 2: CORE System Date (High-Impact Amber/Red Signal Border) ──── */}
-      <section className="bg-white dark:bg-gray-800 rounded-xl border-2 border-amber-500/40 dark:border-amber-600/50 shadow-2xs overflow-hidden">
+      <section className="bg-white dark:bg-gray-800 rounded-xl border-2 border-amber-500/40 dark:border-amber-600/50 shadow-2xs overflow-hidden w-full">
         <div className="px-6 py-4 border-b border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
@@ -394,7 +390,7 @@ function RetailSettingsContent() {
   );
 }
 
-// ── GL Field Component ────────────────────────────────────────────────────────
+// ── GL Field Component with Configure Button for Unconfigured Fields ──────────
 function GLFieldInput({
   label,
   productType,
@@ -408,30 +404,81 @@ function GLFieldInput({
   onChange: (val: string) => void;
   placeholder: string;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const isConfigured = Boolean(value && value.trim().length > 0);
+
+  function handleStartEditing() {
+    setIsEditing(true);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+  }
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <label className="text-[10px] font-mono font-bold tracking-wider text-gray-500 dark:text-gray-400 uppercase">
           {label}
         </label>
-        {!value.trim() ? (
-          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-gray-100 dark:bg-gray-800 text-gray-500">
-            Not configured
-          </span>
-        ) : (
+        {isConfigured ? (
           <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
             Configured
+          </span>
+        ) : (
+          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-gray-100 dark:bg-gray-800 text-gray-500">
+            Not configured
           </span>
         )}
       </div>
 
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full font-mono text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded p-2.5 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-gray-100"
-      />
+      {!isConfigured && !isEditing ? (
+        <div className="relative">
+          <input
+            type="text"
+            readOnly
+            disabled
+            placeholder="Not configured"
+            className="w-full font-mono text-xs text-gray-400 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded p-2.5 pr-24 cursor-pointer"
+            onClick={handleStartEditing}
+          />
+          <button
+            type="button"
+            onClick={handleStartEditing}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 bg-gray-900 dark:bg-gray-100 hover:bg-black dark:hover:bg-white text-white dark:text-gray-900 font-mono font-bold text-[10px] uppercase rounded transition cursor-pointer shadow-xs"
+          >
+            Configure
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            onBlur={() => {
+              if (!value.trim()) setIsEditing(false);
+            }}
+            className="w-full font-mono text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded p-2.5 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-gray-100"
+          />
+          {isConfigured && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                setIsEditing(false);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-[10px] font-mono p-1 cursor-pointer"
+              title="Clear GL Mapping"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
       <span className="text-[10px] text-gray-400 block font-mono">{productType} inflow ledger code</span>
     </div>
   );
