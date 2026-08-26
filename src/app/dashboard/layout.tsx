@@ -133,7 +133,6 @@ export default function DashboardLayout({
                   label="Retail Banking"
                   isOpen={sidebarOpen}
                   subItems={[
-                    { label: "Education", href: "/dashboard/retail/education" },
                     { label: "Portfolio Settings", href: "/dashboard/retail/portfolio" },
                   ]}
                 />
@@ -162,7 +161,6 @@ export default function DashboardLayout({
                     { label: "Support", href: "/dashboard/retail/support" },
                     { label: "Products", href: "/dashboard/retail/products" },
                     { label: "Analytics", href: "/dashboard/retail/analytics" },
-                    { label: "Education", href: "/dashboard/retail/education" },
                     { label: "Portfolio Settings", href: "/dashboard/retail/portfolio" },
                   ]}
                 />
