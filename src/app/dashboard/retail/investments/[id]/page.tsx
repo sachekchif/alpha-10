@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Modal, Drawer, Select, Switch } from 'antd';
 import {
   ArrowLeft, BookOpen, Pencil, Trash2, X, Loader2, AlertCircle,
   Check, Shield, BarChart2, TrendingUp, Clock, Eye, Sparkles,
-  Plus, Upload, Users, Award, Zap,
+  Plus, Upload, Users, Award, Zap, PieChart, Star, RefreshCw, Filter, Search,
+  Layers, GripVertical, ShieldCheck, DollarSign, ArrowUpRight
 } from 'lucide-react';
 import { 
   PiCellSignalMediumFill, PiCellSignalHighFill, PiCellSignalFullFill 
@@ -17,6 +18,17 @@ import {
   useUpdateInvestmentEducationMutation,
   useDeleteInvestmentEducationMutation,
   CreateInvestmentEducationRequest,
+  useGetMutualFundContentsQuery,
+  useCreateMutualFundContentMutation,
+  useUpdateMutualFundContentMutation,
+  useDeleteMutualFundContentMutation,
+  useGetMutualFundContentQuery,
+  useUpdateMutualFundAllocationsMutation,
+  useUpdateMutualFundHoldingsMutation,
+  MutualFundContent,
+  CreateMutualFundRequest,
+  AllocationItem,
+  HoldingItem,
 } from '@/auth/services/adminApi';
 import { useToast } from '@/auth/components/ToastContainer';
 
@@ -63,6 +75,19 @@ const CATEGORY_OPTIONS = [
   'Fixed Income', 'Equity', 'Money Market', 'Savings', 'Alternative', 'USD Investment', 'Investment Banking',
 ];
 
+const emptyMutualFundForm = (): CreateMutualFundRequest => ({
+  fundId: '',
+  displayName: '',
+  shortDescription: '',
+  riskLevel: 'Low Risk',
+  isRecommended: false,
+  durationLabel: '12 – 36 months',
+  expectedYieldLabel: '14.5% p.a.',
+  howYouEarnText: 'Yield is calculated daily and paid monthly into your investment wallet.',
+  isActive: true,
+  displayOrder: 0,
+});
+
 export default function InvestmentDetailPage() {
   return (
     <RoleGuard allowedRoles={['SuperAdmin', 'Control']}>
@@ -87,6 +112,12 @@ function InvestmentDetailContent() {
   const [deleteItem, { isLoading: isDeleting }] = useDeleteInvestmentEducationMutation();
 
   const item = data?.data;
+
+  // Check if this module is Mutual Funds
+  const isMutualFundsModule = 
+    item?.code === 'mutual_funds' || 
+    item?.code === 'muritual_funds' || 
+    item?.title?.toLowerCase().includes('mutual fund');
 
   function openEdit() {
     if (!item) return;
@@ -201,7 +232,7 @@ function InvestmentDetailContent() {
               onClick={openEdit}
               className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition cursor-pointer"
             >
-              <Pencil size={14} /> Edit Investment
+              <Pencil size={14} /> Edit Module
             </button>
             <button
               onClick={() => setIsConfirmDelete(true)}
@@ -224,8 +255,11 @@ function InvestmentDetailContent() {
           <p className="text-sm font-medium">Failed to load investment details.</p>
           <button onClick={() => refetch()} className="text-xs text-[#961A1C] hover:underline font-semibold">Try again</button>
         </div>
+      ) : isMutualFundsModule ? (
+        /* ── IF MUTUAL FUNDS: RENDER FULL MUTUAL FUNDS MANAGEMENT SYSTEM ───────── */
+        <MutualFundsManagementSuite />
       ) : (
-        /* ── 70% / 30% Split Layout ──────────────────────────────────── */
+        /* ── STANDARD INVESTMENT PRODUCT MODULE DETAILS ──────────────────────── */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
 
           {/* ── 70% Left Main Content Area (lg:col-span-8) ───────────── */}
@@ -774,6 +808,518 @@ function InvestmentDetailContent() {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+// ─── MUTUAL FUNDS MANAGEMENT SUITE (Rendered inside Investments Details page for Mutual Funds) ──
+function MutualFundsManagementSuite() {
+  const router = useRouter();
+  const toast = useToast();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [riskFilter, setRiskFilter] = useState<string>('All');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [pageNumber, setPageNumber] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | null>(null);
+  const [selectedItem, setSelectedItem] = useState<MutualFundContent | null>(null);
+  const [form, setForm] = useState<CreateMutualFundRequest>(emptyMutualFundForm());
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<MutualFundContent | null>(null);
+
+  const { data, isFetching, isError, refetch } = useGetMutualFundContentsQuery({ pageNumber, pageSize: PAGE_SIZE });
+  const [createFund, { isLoading: isCreating }] = useCreateMutualFundContentMutation();
+  const [updateFund, { isLoading: isUpdating }] = useUpdateMutualFundContentMutation();
+  const [deleteFund, { isLoading: isDeleting }] = useDeleteMutualFundContentMutation();
+
+  const rawData = data?.data;
+  const items: MutualFundContent[] = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray((rawData as any)?.items)
+    ? (rawData as any).items
+    : Array.isArray((rawData as any)?.data)
+    ? (rawData as any).data
+    : [];
+  const totalCount: number = (rawData as any)?.totalCount ?? items.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  const activeCount = items.filter((i) => i.isActive).length;
+  const recommendedCount = items.filter((i) => i.isRecommended).length;
+
+  const maxDisplayOrder = useMemo(() => {
+    if (items.length === 0) return 0;
+    return Math.max(...items.map((i) => i.displayOrder ?? 0));
+  }, [items]);
+
+  const filtered = useMemo(() => {
+    return items.filter((i) => {
+      const matchSearch =
+        !searchQuery ||
+        i.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        i.shortDescription?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchRisk = riskFilter === 'All' || i.riskLevel === riskFilter || (riskFilter === 'High Risk' && i.riskLevel?.includes('High'));
+      const matchStatus =
+        statusFilter === 'All'
+          ? true
+          : statusFilter === 'Active'
+          ? i.isActive === true
+          : i.isActive === false;
+      return matchSearch && matchRisk && matchStatus;
+    });
+  }, [items, searchQuery, riskFilter, statusFilter]);
+
+  function validateForm() {
+    const errors: Record<string, string> = {};
+    if (!form.displayName.trim()) errors.displayName = 'Display name is required';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  function openCreate() {
+    setForm({
+      ...emptyMutualFundForm(),
+      displayOrder: maxDisplayOrder + 1,
+    });
+    setFormErrors({});
+    setSelectedItem(null);
+    setDrawerMode('create');
+  }
+
+  function openEdit(fundItem: MutualFundContent) {
+    setForm({
+      fundId: fundItem.fundId ?? '',
+      displayName: fundItem.displayName ?? '',
+      shortDescription: fundItem.shortDescription ?? '',
+      riskLevel: fundItem.riskLevel ?? 'Low Risk',
+      isRecommended: fundItem.isRecommended ?? false,
+      durationLabel: fundItem.durationLabel ?? '12 – 36 months',
+      expectedYieldLabel: fundItem.expectedYieldLabel ?? '14.5% p.a.',
+      howYouEarnText: fundItem.howYouEarnText ?? '',
+      isActive: fundItem.isActive ?? true,
+      displayOrder: fundItem.displayOrder ?? 0,
+    });
+    setFormErrors({});
+    setSelectedItem(fundItem);
+    setDrawerMode('edit');
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validateForm()) return;
+    try {
+      const autoFundId = form.fundId.trim() || `AMF-MF-${String(Date.now()).slice(-6)}`;
+      const formattedPayload: CreateMutualFundRequest = {
+        ...form,
+        fundId: autoFundId,
+        displayName: form.displayName.trim(),
+        shortDescription: form.shortDescription?.trim() || '',
+        durationLabel: form.durationLabel?.trim() || '',
+        expectedYieldLabel: form.expectedYieldLabel?.trim() || '',
+        howYouEarnText: form.howYouEarnText?.trim() || '',
+        displayOrder: drawerMode === 'create' ? maxDisplayOrder + 1 : form.displayOrder,
+      };
+
+      if (drawerMode === 'create') {
+        await createFund(formattedPayload).unwrap();
+        toast.success('Mutual fund content created successfully.', 'Created');
+      } else if (selectedItem) {
+        await updateFund({ id: selectedItem.id, body: formattedPayload }).unwrap();
+        toast.success('Mutual fund content updated successfully.', 'Updated');
+      }
+      setDrawerMode(null);
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Operation failed.', 'Error');
+    }
+  }
+
+  async function handleToggleActive(fundItem: MutualFundContent) {
+    try {
+      const payload: CreateMutualFundRequest = {
+        fundId: fundItem.fundId ?? '',
+        displayName: fundItem.displayName ?? '',
+        shortDescription: fundItem.shortDescription ?? '',
+        riskLevel: fundItem.riskLevel ?? 'Low Risk',
+        isRecommended: fundItem.isRecommended ?? false,
+        durationLabel: fundItem.durationLabel ?? '',
+        expectedYieldLabel: fundItem.expectedYieldLabel ?? '',
+        howYouEarnText: fundItem.howYouEarnText ?? '',
+        isActive: !fundItem.isActive,
+        displayOrder: fundItem.displayOrder ?? 0,
+      };
+      await updateFund({ id: fundItem.id, body: payload }).unwrap();
+      toast.success(
+        `"${fundItem.displayName}" ${!fundItem.isActive ? 'activated' : 'deactivated'}.`,
+        !fundItem.isActive ? 'Active' : 'Inactive'
+      );
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Toggle status failed.', 'Error');
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      await deleteFund(deleteTarget.id).unwrap();
+      toast.success(`"${deleteTarget.displayName}" deleted successfully.`, 'Deleted');
+      setDeleteTarget(null);
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Delete failed.', 'Delete Failed');
+    }
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* Header bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#961A1C]/10 flex items-center justify-center">
+            <PieChart size={20} className="text-[#961A1C]" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              Mutual Funds Offerings & Portfolio
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Manage retail mutual fund options, allocations, yield projections, and holdings
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-xs cursor-pointer"
+          >
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-xl shadow-sm transition cursor-pointer"
+          >
+            <Plus size={15} /> Add Mutual Fund
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
+          <span className="text-xs font-medium text-gray-400 block mb-1">Total Mutual Funds</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{isFetching ? '—' : totalCount}</h3>
+          <span className="text-[11px] text-emerald-600 font-semibold">{activeCount} Active in catalog</span>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
+          <span className="text-xs font-medium text-gray-400 block mb-1">Recommended Funds</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{recommendedCount}</h3>
+          <span className="text-[11px] text-amber-600 font-semibold">Featured for retail investors</span>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
+          <span className="text-xs font-medium text-gray-400 block mb-1">Average Yield</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">14.8% p.a.</h3>
+          <span className="text-[11px] text-blue-600 font-semibold">+2.4% return projection</span>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
+          <span className="text-xs font-medium text-gray-400 block mb-1">App LMS Sync</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Live Sync</h3>
+          <span className="text-[11px] text-emerald-600 font-semibold">Real-time mobile API</span>
+        </div>
+      </div>
+
+      {/* Main Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs overflow-hidden">
+        
+        {/* Toolbar */}
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700/80 flex flex-col sm:flex-row gap-3 justify-between items-center">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <input
+              type="text"
+              placeholder="Search mutual funds..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-2 pl-9 pr-3 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={riskFilter}
+              onChange={(e) => setRiskFilter(e.target.value)}
+              className="text-xs border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+            >
+              <option value="All">All Risk Levels</option>
+              <option value="Low Risk">Low Risk</option>
+              <option value="Moderate Risk">Moderate Risk</option>
+              <option value="High Risk">High Risk</option>
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Table content */}
+        <div className="min-h-[300px]">
+          {isFetching ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">
+              <Loader2 size={24} className="animate-spin text-[#961A1C]" />
+              <span className="text-xs font-medium">Loading mutual funds from API...</span>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">
+              <PieChart size={30} className="opacity-40" />
+              <span className="text-xs font-medium">No mutual fund items found.</span>
+              <button onClick={openCreate} className="text-xs text-[#961A1C] font-semibold hover:underline">
+                Create First Mutual Fund
+              </button>
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-3">S/N</th>
+                  <th className="px-4 py-3">Display Name & ID</th>
+                  <th className="px-4 py-3">Risk Level</th>
+                  <th className="px-4 py-3">Yield & Tenor</th>
+                  <th className="px-4 py-3 text-center">Recommended</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                {filtered.map((fundItem, idx) => (
+                  <tr key={fundItem.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3.5 font-mono font-bold text-gray-700 dark:text-gray-300">
+                      #{idx + 1}
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <div>
+                        <span className="font-bold text-sm text-gray-900 dark:text-white block">
+                          {fundItem.displayName}
+                        </span>
+                        <span className="text-[10px] font-mono text-gray-400">
+                          {fundItem.fundId || fundItem.id}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200">
+                        <PiCellSignalHighFill className="text-amber-600" />
+                        {fundItem.riskLevel || 'Low Risk'}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {fundItem.expectedYieldLabel || '14.5% p.a.'}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        {fundItem.durationLabel || '12-36 months'}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                      {fundItem.isRecommended ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          <Star size={10} className="fill-amber-500 text-amber-500" /> Featured
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">—</span>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                      <Switch
+                        size="small"
+                        checked={fundItem.isActive}
+                        onChange={() => handleToggleActive(fundItem)}
+                      />
+                    </td>
+
+                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(fundItem)}
+                          className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(fundItem)}
+                          className="p-1.5 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Drawer for Create / Edit Mutual Fund (maskClosable=true) */}
+      <Drawer
+        open={Boolean(drawerMode)}
+        onClose={() => setDrawerMode(null)}
+        width={560}
+        destroyOnClose
+        maskClosable={true}
+        className="dark:bg-gray-900"
+        title={
+          <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+            {drawerMode === 'create' ? 'Add Mutual Fund' : 'Edit Mutual Fund'}
+          </h3>
+        }
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col h-full space-y-4">
+          <div className="flex-1 overflow-y-auto space-y-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Display Name *
+              </label>
+              <input
+                type="text"
+                value={form.displayName}
+                onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+                placeholder="e.g. ARM Ethical Fund"
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+              />
+              {formErrors.displayName && <p className="text-xs text-red-500 mt-1">{formErrors.displayName}</p>}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Short Description
+              </label>
+              <textarea
+                rows={2}
+                value={form.shortDescription}
+                onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
+                placeholder="Brief summary of fund strategy..."
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Expected Yield Label
+                </label>
+                <input
+                  type="text"
+                  value={form.expectedYieldLabel}
+                  onChange={(e) => setForm({ ...form, expectedYieldLabel: e.target.value })}
+                  placeholder="e.g. 14.5% p.a."
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Duration Label
+                </label>
+                <input
+                  type="text"
+                  value={form.durationLabel}
+                  onChange={(e) => setForm({ ...form, durationLabel: e.target.value })}
+                  placeholder="e.g. 12 – 36 months"
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Risk Level
+              </label>
+              <Select
+                value={form.riskLevel || 'Low Risk'}
+                onChange={(val) => setForm({ ...form, riskLevel: val })}
+                options={[
+                  { value: 'Low Risk', label: 'Low Risk' },
+                  { value: 'Moderate Risk', label: 'Moderate Risk' },
+                  { value: 'High Risk', label: 'High Risk' },
+                ]}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                How You Earn Text
+              </label>
+              <textarea
+                rows={2}
+                value={form.howYouEarnText}
+                onChange={(e) => setForm({ ...form, howYouEarnText: e.target.value })}
+                placeholder="Details on returns calculation and payout schedule..."
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Featured Recommendation</span>
+              <Switch
+                checked={form.isRecommended}
+                onChange={(checked) => setForm({ ...form, isRecommended: checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Active Status</span>
+              <Switch
+                checked={form.isActive}
+                onChange={(checked) => setForm({ ...form, isActive: checked })}
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isCreating || isUpdating}
+            className="w-full py-3 bg-[#961A1C] text-white font-bold text-xs rounded-xl shadow-sm hover:bg-[#7a1517] transition cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {isCreating || isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            <span>{drawerMode === 'create' ? 'Create Mutual Fund' : 'Save Changes'}</span>
+          </button>
+        </form>
+      </Drawer>
+
+      {/* Delete Modal */}
+      <Modal
+        open={Boolean(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+        onOk={handleDelete}
+        confirmLoading={isDeleting}
+        okText="Delete Fund"
+        okButtonProps={{ danger: true }}
+        width={380}
+        centered
+      >
+        <div className="py-2 text-xs text-gray-600 dark:text-gray-300">
+          Are you sure you want to delete mutual fund <strong>&ldquo;{deleteTarget?.displayName}&rdquo;</strong>?
+        </div>
+      </Modal>
+
     </div>
   );
 }
