@@ -2,12 +2,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Modal, Drawer, Select, Switch } from 'antd';
+import { Modal, Drawer, Select, Switch, Pagination, Progress } from 'antd';
 import {
-  ArrowLeft, BookOpen, Pencil, Trash2, X, Loader2, AlertCircle,
-  Check, Shield, BarChart2, TrendingUp, Clock, Eye, Sparkles,
-  Plus, Upload, Users, Award, Zap, PieChart, Star, RefreshCw, Filter, Search,
-  Layers, GripVertical, ShieldCheck, DollarSign, ArrowUpRight
+  ArrowLeft, Pencil, Trash2, X, Loader2, AlertCircle,
+  Check, Plus, RefreshCw, Search
 } from 'lucide-react';
 import { 
   PiCellSignalMediumFill, PiCellSignalHighFill, PiCellSignalFullFill 
@@ -38,17 +36,17 @@ type RiskLevel = typeof RISK_LEVELS[number];
 const RISK_META: Record<RiskLevel, { color: string; bg: string; icon: React.ReactNode }> = {
   Low: {
     color: 'text-emerald-700 dark:text-emerald-400',
-    bg: 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800',
     icon: <PiCellSignalMediumFill className="text-emerald-600 text-sm" />,
   },
   Medium: {
     color: 'text-amber-700 dark:text-amber-400',
-    bg: 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200',
+    bg: 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800',
     icon: <PiCellSignalHighFill className="text-amber-600 text-sm" />,
   },
   High: {
     color: 'text-red-700 dark:text-red-400',
-    bg: 'bg-red-50 dark:bg-red-900/30 border border-red-200',
+    bg: 'bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800',
     icon: <PiCellSignalFullFill className="text-red-600 text-sm" />,
   },
 };
@@ -101,6 +99,7 @@ function InvestmentDetailContent() {
   const router = useRouter();
   const toast = useToast();
 
+  const [activeTab, setActiveTab] = useState<'products' | 'details'>('products');
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<(CreateInvestmentEducationRequest & { category?: string; tags?: string }) | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -206,18 +205,18 @@ function InvestmentDetailContent() {
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-12 w-full animate-in fade-in duration-500">
-      {/* ── Top Header Section (No background & simplified) ───────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-transparent pb-3 border-b border-gray-200/60 dark:border-gray-800">
+    <div className="flex flex-col gap-6 pb-12 w-full">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-gray-800">
         <div>
           <button
             onClick={() => router.push('/dashboard/retail/investments')}
-            className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 font-medium transition-colors mb-1.5 cursor-pointer"
+            className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 font-medium transition-colors mb-2 cursor-pointer"
           >
             <ArrowLeft size={14} /> Back to Investments
           </button>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-            {item?.title || 'Loading Product Details...'}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+            {item?.title || 'Loading...'}
           </h1>
           {item && (
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1">
@@ -230,334 +229,266 @@ function InvestmentDetailContent() {
           <div className="flex items-center gap-2 self-end sm:self-center">
             <button
               onClick={openEdit}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
             >
-              <Pencil size={14} /> Edit Module
+              <Pencil size={13} /> Edit Module
             </button>
             <button
               onClick={() => setIsConfirmDelete(true)}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 transition cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-lg hover:bg-red-100 transition cursor-pointer"
             >
-              <Trash2 size={14} /> Delete
+              <Trash2 size={13} /> Delete
             </button>
           </div>
         )}
       </div>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
-          <Loader2 size={28} className="animate-spin text-[#961A1C]" />
-          <span className="text-sm font-medium">Loading investment product analysis...</span>
+        <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">
+          <Loader2 size={24} className="animate-spin text-[#961A1C]" />
+          <span className="text-xs font-medium">Loading details...</span>
         </div>
       ) : isError || !item ? (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 flex flex-col items-center gap-3 text-gray-400">
-          <AlertCircle size={28} className="text-[#961A1C]" />
-          <p className="text-sm font-medium">Failed to load investment details.</p>
-          <button onClick={() => refetch()} className="text-xs text-[#961A1C] hover:underline font-semibold">Try again</button>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 flex flex-col items-center gap-2 text-gray-400">
+          <AlertCircle size={24} className="text-[#961A1C]" />
+          <p className="text-xs font-medium">Failed to load investment details.</p>
+          <button onClick={() => refetch()} className="text-xs text-[#961A1C] hover:underline font-medium">Try again</button>
         </div>
       ) : (
-        /* ── INVESTMENT PRODUCT MODULE DETAILS (SHOWN FOR ALL PRODUCTS) ─── */
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+        <div className="space-y-6">
 
-            {/* ── 70% Left Main Content Area (lg:col-span-8) ───────────── */}
-            <div className="lg:col-span-8 space-y-6">
+          {/* Clean Enterprise Tabs Navigation */}
+          {isMutualFundsModule && (
+            <div className="flex border-b border-gray-200 dark:border-gray-800 gap-8 text-sm">
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`pb-3 transition-colors relative cursor-pointer font-medium ${
+                  activeTab === 'products'
+                    ? 'text-[#961A1C] font-semibold border-b-2 border-[#961A1C]'
+                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                Products
+              </button>
 
-              {/* Level Badge & Risk Badge Bar */}
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
-                  Intermediate
-                </span>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
-                  {meta.icon}
-                  {item.riskLevel || 'Low'}
-                </span>
-              </div>
-
-              {/* Title Heading & Description Card */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 space-y-4 shadow-xs">
-                <div>
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                    Product Headline & Hero Summary
-                  </span>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-snug">
-                    {item.title}
-                  </h2>
-                  {item.heroText && (
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 leading-relaxed bg-gray-50 dark:bg-gray-900/40 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800">
-                      {item.heroText}
-                    </p>
-                  )}
-                </div>
-
-                {item.detailsText && (
-                  <div>
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
-                      Comprehensive Investment Details
-                    </span>
-                    <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-2">
-                      {item.detailsText}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* How It Works Connected Steps */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 shadow-xs">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-                  How It Works — Step-by-Step Investment Guide
-                </h3>
-
-                {parsedSteps.length > 0 ? (
-                  <div className="relative pl-6 space-y-4">
-                    {parsedSteps.length > 1 && (
-                      <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700" />
-                    )}
-                    {parsedSteps.map((step, idx) => (
-                      <div key={idx} className="relative flex items-center gap-3">
-                        <div className="absolute -left-6 z-10 w-6 h-6 rounded-full bg-[#961A1C] text-white text-xs font-bold flex items-center justify-center shadow-xs">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1 p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
-                          {step.replace(/^\d+\.\s*/, '')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : item.howItWorksText ? (
-                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {item.howItWorksText}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">No step-by-step guide provided for this investment product yet.</p>
-                )}
-              </div>
-
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`pb-3 transition-colors relative cursor-pointer font-medium ${
+                  activeTab === 'details'
+                    ? 'text-[#961A1C] font-semibold border-b-2 border-[#961A1C]'
+                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                More Details
+              </button>
             </div>
+          )}
 
-            {/* ── 30% Right Sidebar: Analytics & Conditions (lg:col-span-4) ─ */}
-            <div className="lg:col-span-4 space-y-6">
+          {/* TAB 1: PRODUCTS TABLE (FOR MUTUAL FUNDS) */}
+          {isMutualFundsModule && activeTab === 'products' && (
+            <div>
+              <MutualFundsManagementSuite />
+            </div>
+          )}
 
-              {/* Engagement & Viewer Analytics (Test Data Overlay) */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 space-y-4 shadow-xs relative overflow-hidden">
-                <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
-                  TEST DATA
-                </div>
+          {/* TAB 2: MORE DETAILS */}
+          {(!isMutualFundsModule || activeTab === 'details') && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
 
-                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
-                  <BarChart2 size={16} className="text-[#961A1C]" />
-                  <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                    Product Engagement Analysis
-                  </h3>
-                </div>
+              {/* Main Content Area */}
+              <div className="lg:col-span-8 space-y-6">
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <Users size={13} />
-                      <span className="text-[10px] font-semibold uppercase">Total Viewers</span>
-                    </div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">48,200</p>
-                    <p className="text-[10px] text-emerald-600 font-medium">+18% this month</p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <Award size={13} />
-                      <span className="text-[10px] font-semibold uppercase">Completion</span>
-                    </div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">71.4%</p>
-                    <p className="text-[10px] text-emerald-600 font-medium">+4.2% completion</p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <Clock size={13} />
-                      <span className="text-[10px] font-semibold uppercase">Avg Watch Time</span>
-                    </div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">4.2 min</p>
-                    <p className="text-[10px] text-gray-400 font-medium">Per session</p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                      <Zap size={13} />
-                      <span className="text-[10px] font-semibold uppercase">Active Now</span>
-                    </div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">1,420</p>
-                    <p className="text-[10px] text-emerald-600 font-medium">Viewing live</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Separate Cards for Capital, ROI, and Withdrawal */}
-              <div className="space-y-3">
-                {/* Capital Card */}
-                <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Capital Requirement</span>
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Would the customer need capital for this investment?
-                    </p>
-                  </div>
-                  <div>
-                    {item.capitalGuaranteed ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        <Check size={14} className="stroke-[3]" /> Capital Guaranteed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
-                        <X size={14} className="stroke-[2.5]" /> No Capital Needed
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* ROI Card */}
-                <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">ROI & Returns</span>
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Will the customer receive guaranteed ROI for this investment?
-                    </p>
-                  </div>
-                  <div>
-                    {item.returnsGuaranteed ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        <Check size={14} className="stroke-[3]" /> ROI Guaranteed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
-                        <X size={14} className="stroke-[2.5]" /> No ROI Guaranteed
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Withdrawal Restrictions Card */}
-                <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Withdrawal Restrictions</span>
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Are there withdrawal restrictions on this investment?
-                    </p>
-                  </div>
-                  <div>
-                    {item.withdrawalRestrictions ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                        <X size={14} className="stroke-[2.5]" /> Restricted Withdrawal
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        <Check size={14} className="stroke-[3]" /> Flexible Withdrawal
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Risk Profile Card */}
-              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#961A1C] text-lg"><PiCellSignalHighFill /></span>
-                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                      Risk Level Profile
-                    </span>
-                  </div>
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                {/* Risk & Category Header */}
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                    Intermediate
+                  </span>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${meta.bg} ${meta.color}`}>
                     {meta.icon}
                     {item.riskLevel || 'Low'}
                   </span>
                 </div>
-              </div>
 
-              {/* Active Status Card */}
-              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 shadow-xs">
-                <div className="flex items-center justify-between">
+                {/* Summary Card */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
                   <div>
-                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
-                      Active
-                    </span>
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
-                      Retail users can now access this investment offering
-                    </p>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                      {item.title}
+                    </h2>
+                    {item.heroText && (
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
+                        {item.heroText}
+                      </p>
+                    )}
                   </div>
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+
+                  {item.detailsText && (
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-700/60">
+                      <span className="text-xs font-semibold text-gray-400 block mb-2">
+                        Details & Terms
+                      </span>
+                      <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {item.detailsText}
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Step-by-Step Guide */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                    How It Works
+                  </h3>
+
+                  {parsedSteps.length > 0 ? (
+                    <div className="space-y-3">
+                      {parsedSteps.map((step, idx) => (
+                        <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                          <span className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <p className="text-xs text-gray-800 dark:text-gray-200 font-medium leading-relaxed">
+                            {step.replace(/^\d+\.\s*/, '')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : item.howItWorksText ? (
+                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {item.howItWorksText}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">No step guide provided.</p>
+                  )}
+                </div>
+
               </div>
 
-            </div>
+              {/* Sidebar */}
+              <div className="lg:col-span-4 space-y-4">
 
-          </div>
+                {/* Engagement Metrics (Test Data Overlay) */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 relative overflow-hidden">
+                  <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-medium px-2 py-0.5 rounded shadow-xs">
+                    TEST DATA
+                  </div>
 
-          {/* ── IF MUTUAL FUNDS MODULE: SHOW MUTUAL FUNDS MANAGEMENT TABLE SUITE BELOW ── */}
-          {isMutualFundsModule && (
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-              <MutualFundsManagementSuite />
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Product Usage
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                      <span className="text-[10px] text-gray-400 font-medium block mb-0.5">Total Viewers</span>
+                      <p className="text-base font-bold text-gray-900 dark:text-white">48,200</p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                      <span className="text-[10px] text-gray-400 font-medium block mb-0.5">Completion</span>
+                      <p className="text-base font-bold text-gray-900 dark:text-white">71.4%</p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                      <span className="text-[10px] text-gray-400 font-medium block mb-0.5">Avg Watch Time</span>
+                      <p className="text-base font-bold text-gray-900 dark:text-white">4.2 min</p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                      <span className="text-[10px] text-gray-400 font-medium block mb-0.5">Active Now</span>
+                      <p className="text-base font-bold text-gray-900 dark:text-white">1,420</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Capital Card */}
+                <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase block">Capital Requirement</span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">Capital Guaranteed</p>
+                  </div>
+                  {item.capitalGuaranteed ? (
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Yes</span>
+                  ) : (
+                    <span className="text-xs font-medium text-gray-400">No</span>
+                  )}
+                </div>
+
+                {/* ROI Card */}
+                <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase block">ROI & Returns</span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">Returns Guaranteed</p>
+                  </div>
+                  {item.returnsGuaranteed ? (
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Yes</span>
+                  ) : (
+                    <span className="text-xs font-medium text-gray-400">No</span>
+                  )}
+                </div>
+
+                {/* Withdrawal Card */}
+                <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase block">Withdrawals</span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">Restrictions</p>
+                  </div>
+                  {item.withdrawalRestrictions ? (
+                    <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">Restricted</span>
+                  ) : (
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Flexible</span>
+                  )}
+                </div>
+
+                {/* Risk Level Profile */}
+                <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Risk Profile</span>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${meta.bg} ${meta.color}`}>
+                    {meta.icon}
+                    {item.riskLevel || 'Low'}
+                  </span>
+                </div>
+
+              </div>
+
             </div>
           )}
+
         </div>
       )}
 
-      {/* Edit Drawer (Ant Design Drawer: maskClosable=true) */}
+      {/* Edit Drawer (maskClosable=true) */}
       <Drawer
         open={Boolean(isEditing && form)}
         onClose={() => setIsEditing(false)}
-        width={560}
+        width={520}
         destroyOnClose
         maskClosable={true}
         className="dark:bg-gray-900"
         title={
-          <div className="flex items-center justify-between text-gray-900 dark:text-white">
-            <h3 className="text-md font-semibold text-gray-900 dark:text-white">
-              Edit Investment
-            </h3>
-          </div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Edit Investment
+          </h3>
         }
       >
         {form && (
           <form onSubmit={handleUpdate} className="flex flex-col h-full">
-
-            <div className="flex-1 overflow-y-auto space-y-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-
-              {/* Tag Badge Display & Dropdown */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
-                  {form.tags || 'Intermediate'}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 font-medium">Tag Level:</span>
-                  <Select
-                    value={form.tags || 'Intermediate'}
-                    onChange={(val) => setForm({ ...form, tags: val })}
-                    options={TAG_OPTIONS}
-                    className="w-36 text-xs"
-                    size="small"
-                  />
-                </div>
-              </div>
-
-              {/* Title Field (Large heading style like on app) */}
+            <div className="flex-1 overflow-y-auto space-y-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Title *
+                </label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Investment Title (e.g. Fixed Deposit High Yield Portfolio)"
-                  className={`w-full text-xl sm:text-2xl font-bold bg-transparent text-gray-900 dark:text-white border-b-2 border-dashed focus:border-solid border-gray-300 dark:border-gray-700 py-1.5 focus:border-[#961A1C] outline-none transition placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
-                    formErrors.title ? 'border-red-500' : ''
-                  }`}
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
                 />
-                {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
-                <p className="text-[11px] text-gray-400 mt-1">Retail investor app header title</p>
               </div>
 
-              {/* Investment Type Dropdown & Category Type Dropdown */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Investment Type *
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Investment Type
                   </label>
                   <Select
                     value={form.code || 'mutual_funds'}
@@ -565,251 +496,110 @@ function InvestmentDetailContent() {
                     options={INVESTMENT_TYPES}
                     className="w-full"
                   />
-                  {formErrors.code && <p className="text-xs text-red-500 mt-1">{formErrors.code}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Category Type
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Risk Level
                   </label>
                   <Select
-                    value={form.category || CATEGORY_OPTIONS[0]}
-                    onChange={(val) => setForm({ ...form, category: val })}
-                    options={CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))}
+                    value={form.riskLevel || 'Low'}
+                    onChange={(val) => setForm({ ...form, riskLevel: val as RiskLevel })}
+                    options={RISK_LEVELS.map((r) => ({ value: r, label: r }))}
                     className="w-full"
                   />
                 </div>
               </div>
 
-              {/* Hero & Overview Text */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Hero Headline
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={form.heroText}
-                    onChange={(e) => setForm({ ...form, heroText: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                    placeholder="Investment product summary for retail investors..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Full Details & Description
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={form.detailsText}
-                    onChange={(e) => setForm({ ...form, detailsText: e.target.value })}
-                    className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                    placeholder="Full investment terms, security backing, and strategy..."
-                  />
-                </div>
-              </div>
-
-              {/* How It Works Section - Connected Steps */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                    How It Works — Step-by-Step Investment Guide
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setSteps([...steps, ''])}
-                    className="flex items-center gap-1 text-xs text-[#961A1C] hover:underline font-semibold cursor-pointer"
-                  >
-                    <Plus size={13} /> Add Step
-                  </button>
-                </div>
-
-                <div className="relative pl-6 space-y-4">
-                  {steps.length > 1 && (
-                    <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700" />
-                  )}
-
-                  {steps.map((stepText, idx) => (
-                    <div key={idx} className="relative flex items-center gap-3 group">
-                      <div className="absolute -left-6 z-10 w-6 h-6 rounded-full bg-[#961A1C] text-white text-xs font-bold flex items-center justify-center shadow-xs">
-                        {idx + 1}
-                      </div>
-
-                      <div className="flex-1 flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={stepText}
-                          onChange={(e) => {
-                            const updated = [...steps];
-                            updated[idx] = e.target.value;
-                            setSteps(updated);
-                          }}
-                          placeholder={`Step ${idx + 1} description...`}
-                          className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
-                        />
-                        {steps.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setSteps(steps.filter((_, i) => i !== idx))}
-                            className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Hero Text
+                </label>
+                <textarea
+                  rows={2}
+                  value={form.heroText}
+                  onChange={(e) => setForm({ ...form, heroText: e.target.value })}
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                />
               </div>
 
-              {/* Risk Level Selection: 3 Levels (Low, Medium, High) */}
-              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[#961A1C] text-lg"><PiCellSignalHighFill /></span>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                    Risk Level Profile
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {RISK_LEVELS.map((r) => {
-                    const active = form.riskLevel === r;
-                    const meta = RISK_META[r];
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setForm({ ...form, riskLevel: r })}
-                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-semibold border transition cursor-pointer ${
-                          active
-                            ? `${meta.bg} ${meta.color} ring-2 ring-current shadow-xs`
-                            : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        {meta.icon}
-                        <span>{r}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Details Text
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.detailsText}
+                  onChange={(e) => setForm({ ...form, detailsText: e.target.value })}
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                />
               </div>
 
-              {/* Capital, Returns, Withdrawal Questions */}
-              <div className="space-y-3">
-                {/* Capital */}
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  <div className="pr-3">
-                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                      Would the customer need capital for this investment?
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Capital Guaranteed</p>
-                  </div>
+              <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <span className="text-xs text-gray-700 dark:text-gray-300">Capital Guaranteed</span>
                   <Switch
                     checked={form.capitalGuaranteed}
                     onChange={(checked) => setForm({ ...form, capitalGuaranteed: checked })}
                   />
                 </div>
 
-                {/* Returns */}
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  <div className="pr-3">
-                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                      Will the customer receive guaranteed ROI for this investment?
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Returns Guaranteed</p>
-                  </div>
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <span className="text-xs text-gray-700 dark:text-gray-300">Returns Guaranteed</span>
                   <Switch
                     checked={form.returnsGuaranteed}
                     onChange={(checked) => setForm({ ...form, returnsGuaranteed: checked })}
                   />
                 </div>
 
-                {/* Withdrawal */}
-                <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  <div className="pr-3">
-                    <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                      Are there withdrawal restrictions on this investment?
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Withdrawal Restrictions</p>
-                  </div>
+                <div className="flex items-center justify-between p-2.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <span className="text-xs text-gray-700 dark:text-gray-300">Withdrawal Restrictions</span>
                   <Switch
                     checked={form.withdrawalRestrictions}
                     onChange={(checked) => setForm({ ...form, withdrawalRestrictions: checked })}
                   />
                 </div>
               </div>
-
-              {/* Active Status Section */}
-              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
-                      Active
-                    </span>
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
-                      Retail users can now access this investment offering
-                    </p>
-                  </div>
-                  <Switch
-                    checked={form.isActive}
-                    onChange={(checked) => setForm({ ...form, isActive: checked })}
-                  />
-                </div>
-              </div>
             </div>
 
-            {/* Sticky Bottom Action Button */}
-            <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-4 pb-1 mt-4">
-              <button
-                type="submit"
-                disabled={isUpdating}
-                className="w-full py-3.5 px-4 bg-[#961A1C] hover:bg-[#7a1517] text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-              >
-                {isUpdating ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Check size={16} />
-                )}
-                <span>Save Changes</span>
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isUpdating}
+              className="w-full py-2.5 mt-4 bg-[#961A1C] text-white font-medium text-xs rounded-lg hover:bg-[#7a1517] transition cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              <span>Save Changes</span>
+            </button>
           </form>
         )}
       </Drawer>
 
-      {/* Delete confirmation (Ant Design Modal) */}
+      {/* Delete Modal */}
       <Modal
         open={Boolean(isConfirmDelete)}
         onCancel={() => setIsConfirmDelete(false)}
         footer={null}
-        width={420}
+        width={380}
         centered
-        destroyOnClose
-        maskClosable={false}
       >
         <div className="py-2 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
-              <Trash2 size={22} />
-            </div>
-          </div>
-          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Delete Investment</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
-            Are you sure you want to delete <strong className="text-gray-800 dark:text-white">&ldquo;{item?.title}&rdquo;</strong>? This cannot be undone.
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Delete Investment</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 text-xs">
+            Are you sure you want to delete <strong>&ldquo;{item?.title}&rdquo;</strong>?
           </p>
           <div className="flex gap-3">
             <button
               onClick={() => setIsConfirmDelete(false)}
-              className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-xl transition-colors text-sm cursor-pointer"
+              className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-white font-medium rounded-lg text-xs cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors text-sm disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg text-xs disabled:opacity-60 cursor-pointer"
             >
-              {isDeleting ? <><Loader2 size={14} className="animate-spin" /> Deleting...</> : 'Delete'}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </div>
@@ -818,7 +608,7 @@ function InvestmentDetailContent() {
   );
 }
 
-// ─── MUTUAL FUNDS MANAGEMENT SUITE (Rendered inside Investments Details page for Mutual Funds) ──
+// ─── MUTUAL FUNDS MANAGEMENT SUITE ───────────────────────────────────────────
 function MutualFundsManagementSuite() {
   const router = useRouter();
   const toast = useToast();
@@ -827,7 +617,7 @@ function MutualFundsManagementSuite() {
   const [riskFilter, setRiskFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [pageNumber, setPageNumber] = useState(1);
-  const PAGE_SIZE = 20;
+  const [pageSize, setPageSize] = useState(10);
 
   const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | null>(null);
   const [selectedItem, setSelectedItem] = useState<MutualFundContent | null>(null);
@@ -835,7 +625,9 @@ function MutualFundsManagementSuite() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<MutualFundContent | null>(null);
 
-  const { data, isFetching, isError, refetch } = useGetMutualFundContentsQuery({ pageNumber, pageSize: PAGE_SIZE });
+  const [viewingFund, setViewingFund] = useState<MutualFundContent | null>(null);
+
+  const { data, isFetching, refetch } = useGetMutualFundContentsQuery({ pageNumber, pageSize });
   const [createFund, { isLoading: isCreating }] = useCreateMutualFundContentMutation();
   const [updateFund, { isLoading: isUpdating }] = useUpdateMutualFundContentMutation();
   const [deleteFund, { isLoading: isDeleting }] = useDeleteMutualFundContentMutation();
@@ -849,7 +641,6 @@ function MutualFundsManagementSuite() {
     ? (rawData as any).data
     : [];
   const totalCount: number = (rawData as any)?.totalCount ?? items.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const activeCount = items.filter((i) => i.isActive).length;
   const recommendedCount = items.filter((i) => i.isRecommended).length;
@@ -975,90 +766,92 @@ function MutualFundsManagementSuite() {
     }
   }
 
+  // Risk badge helper
+  const renderRiskBadge = (riskStr?: string) => {
+    const r = (riskStr || '').toLowerCase();
+    if (r.includes('low')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+          <PiCellSignalMediumFill className="text-emerald-600 text-xs" />
+          Low Risk
+        </span>
+      );
+    }
+    if (r.includes('high')) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800">
+          <PiCellSignalFullFill className="text-red-600 text-xs" />
+          High Risk
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+        <PiCellSignalHighFill className="text-amber-600 text-xs" />
+        {riskStr || 'Medium Risk'}
+      </span>
+    );
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6">
       
-      {/* Header bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#961A1C]/10 flex items-center justify-center">
-            <PieChart size={20} className="text-[#961A1C]" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              Mutual Funds Offerings & Portfolio
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Manage retail mutual fund options, allocations, yield projections, and holdings
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-xs cursor-pointer"
-          >
-            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-xl shadow-sm transition cursor-pointer"
-          >
-            <Plus size={15} /> Add Mutual Fund
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Bar */}
+      {/* Clean Minimalist Stats Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
-          <span className="text-xs font-medium text-gray-400 block mb-1">Total Mutual Funds</span>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{isFetching ? '—' : totalCount}</h3>
-          <span className="text-[11px] text-emerald-600 font-semibold">{activeCount} Active in catalog</span>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Total Funds</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{isFetching ? '—' : totalCount}</h3>
+          <span className="text-[11px] text-emerald-600 font-medium mt-1 block">{activeCount} active in catalog</span>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
-          <span className="text-xs font-medium text-gray-400 block mb-1">Recommended Funds</span>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{recommendedCount}</h3>
-          <span className="text-[11px] text-amber-600 font-semibold">Featured for retail investors</span>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Featured</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{recommendedCount}</h3>
+          <span className="text-[11px] text-amber-600 font-medium mt-1 block">Recommended products</span>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
-          <span className="text-xs font-medium text-gray-400 block mb-1">Average Yield</span>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">14.8% p.a.</h3>
-          <span className="text-[11px] text-blue-600 font-semibold">+2.4% return projection</span>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Average Expected Yield</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">14.8% p.a.</h3>
+          <span className="text-[11px] text-emerald-600 font-medium mt-1 block">+2.4% return projection</span>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-xs">
-          <span className="text-xs font-medium text-gray-400 block mb-1">App LMS Sync</span>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Live Sync</h3>
-          <span className="text-[11px] text-emerald-600 font-semibold">Real-time mobile API</span>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Status</span>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">Live Sync</h3>
+          <span className="text-[11px] text-emerald-600 font-medium mt-1 block">Mobile catalog active</span>
         </div>
       </div>
 
-      {/* Main Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs overflow-hidden">
+      {/* Main Table Container */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         
         {/* Toolbar */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700/80 flex flex-col sm:flex-row gap-3 justify-between items-center">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-            <input
-              type="text"
-              placeholder="Search mutual funds..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-2 pl-9 pr-3 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
-            />
-          </div>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row gap-3 justify-between items-center bg-gray-50/50 dark:bg-gray-900/30">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto flex-1">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <input
+                type="text"
+                placeholder="Search mutual funds..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-1.5 pl-9 pr-8 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
 
-          <div className="flex items-center gap-2">
             <select
               value={riskFilter}
               onChange={(e) => setRiskFilter(e.target.value)}
-              className="text-xs border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
             >
               <option value="All">All Risk Levels</option>
               <option value="Low Risk">Low Risk</option>
@@ -1069,53 +862,76 @@ function MutualFundsManagementSuite() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
+
+            <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded text-xs text-gray-500 bg-gray-100 dark:bg-gray-800">
+              {filtered.length} products
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 self-end md:self-center">
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+            >
+              <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-lg transition cursor-pointer"
+            >
+              <Plus size={14} /> Add Investment
+            </button>
           </div>
         </div>
 
-        {/* Table content */}
+        {/* Table */}
         <div className="min-h-[300px]">
           {isFetching ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">
               <Loader2 size={24} className="animate-spin text-[#961A1C]" />
-              <span className="text-xs font-medium">Loading mutual funds from API...</span>
+              <span className="text-xs font-medium">Loading catalog...</span>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">
-              <PieChart size={30} className="opacity-40" />
-              <span className="text-xs font-medium">No mutual fund items found.</span>
-              <button onClick={openCreate} className="text-xs text-[#961A1C] font-semibold hover:underline">
-                Create First Mutual Fund
+              <span className="text-xs font-medium">No mutual funds found.</span>
+              <button onClick={openCreate} className="text-xs text-[#961A1C] font-semibold hover:underline mt-1">
+                + Add Mutual Fund
               </button>
             </div>
           ) : (
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
+              <thead className="bg-gray-50/80 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">S/N</th>
-                  <th className="px-4 py-3">Display Name & ID</th>
-                  <th className="px-4 py-3">Risk Level</th>
-                  <th className="px-4 py-3">Yield & Tenor</th>
-                  <th className="px-4 py-3 text-center">Recommended</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-5 py-3">S/N</th>
+                  <th className="px-5 py-3">Name & Code</th>
+                  <th className="px-5 py-3">Risk Level</th>
+                  <th className="px-5 py-3">Expected Yield</th>
+                  <th className="px-5 py-3 text-center">Featured</th>
+                  <th className="px-5 py-3 text-center">Status</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
                 {filtered.map((fundItem, idx) => (
-                  <tr key={fundItem.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono font-bold text-gray-700 dark:text-gray-300">
-                      #{idx + 1}
+                  <tr
+                    key={fundItem.id}
+                    onClick={() => setViewingFund(fundItem)}
+                    className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
+                  >
+                    <td className="px-5 py-3.5 font-mono text-gray-500">
+                      #{(pageNumber - 1) * pageSize + idx + 1}
                     </td>
 
-                    <td className="px-4 py-3.5">
+                    <td className="px-5 py-3.5">
                       <div>
-                        <span className="font-bold text-sm text-gray-900 dark:text-white block">
+                        <span className="font-semibold text-sm text-gray-900 dark:text-white block">
                           {fundItem.displayName}
                         </span>
                         <span className="text-[10px] font-mono text-gray-400">
@@ -1124,33 +940,30 @@ function MutualFundsManagementSuite() {
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200">
-                        <PiCellSignalHighFill className="text-amber-600" />
-                        {fundItem.riskLevel || 'Low Risk'}
-                      </span>
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      {renderRiskBadge(fundItem.riskLevel)}
                     </td>
 
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    <td className="px-5 py-3.5 whitespace-nowrap">
+                      <div className="font-bold text-emerald-600 dark:text-emerald-400">
                         {fundItem.expectedYieldLabel || '14.5% p.a.'}
                       </div>
                       <div className="text-[10px] text-gray-400">
-                        {fundItem.durationLabel || '12-36 months'}
+                        {fundItem.durationLabel || '12 – 36 months'}
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                    <td className="px-5 py-3.5 text-center whitespace-nowrap">
                       {fundItem.isRecommended ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                          <Star size={10} className="fill-amber-500 text-amber-500" /> Featured
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200">
+                          Featured
                         </span>
                       ) : (
                         <span className="text-[10px] text-gray-400">—</span>
                       )}
                     </td>
 
-                    <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                    <td className="px-5 py-3.5 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <Switch
                         size="small"
                         checked={fundItem.isActive}
@@ -1158,19 +971,19 @@ function MutualFundsManagementSuite() {
                       />
                     </td>
 
-                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                    <td className="px-5 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openEdit(fundItem)}
-                          className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
+                          className="p-1 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded transition cursor-pointer"
                         >
-                          <Pencil size={14} />
+                          <Pencil size={13} />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(fundItem)}
-                          className="p-1.5 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                          className="p-1 text-red-500 hover:text-red-700 rounded transition cursor-pointer"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -1180,26 +993,70 @@ function MutualFundsManagementSuite() {
             </table>
           )}
         </div>
+
+        {/* Footer */}
+        {filtered.length > 0 && (
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-3 bg-gray-50/50 dark:bg-gray-900/30">
+            <span className="text-xs text-gray-500 font-medium">
+              Showing {filtered.length} of {totalCount} entries
+            </span>
+
+            <Pagination
+              current={pageNumber}
+              pageSize={pageSize}
+              total={totalCount}
+              onChange={(page, pSize) => {
+                setPageNumber(page);
+                if (pSize) setPageSize(pSize);
+              }}
+              showSizeChanger
+              pageSizeOptions={['10', '20', '50']}
+              size="small"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Drawer for Create / Edit Mutual Fund (maskClosable=true) */}
+      {/* Portfolio Detail Drawer (maskClosable=true) */}
       <Drawer
-        open={Boolean(drawerMode)}
-        onClose={() => setDrawerMode(null)}
+        open={Boolean(viewingFund)}
+        onClose={() => setViewingFund(null)}
         width={560}
         destroyOnClose
         maskClosable={true}
         className="dark:bg-gray-900"
         title={
-          <h3 className="text-md font-semibold text-gray-900 dark:text-white">
-            {drawerMode === 'create' ? 'Add Mutual Fund' : 'Edit Mutual Fund'}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              {viewingFund?.displayName}
+            </h3>
+            <p className="text-[10px] text-gray-400 font-mono">{viewingFund?.fundId}</p>
+          </div>
+        }
+      >
+        {viewingFund && (
+          <MutualFundDetailDrawerContent fundId={viewingFund.id} initialFund={viewingFund} />
+        )}
+      </Drawer>
+
+      {/* Create / Edit Drawer (maskClosable=true) */}
+      <Drawer
+        open={Boolean(drawerMode)}
+        onClose={() => setDrawerMode(null)}
+        width={520}
+        destroyOnClose
+        maskClosable={true}
+        className="dark:bg-gray-900"
+        title={
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+            {drawerMode === 'create' ? 'Add Investment' : 'Edit Investment'}
           </h3>
         }
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full space-y-4">
           <div className="flex-1 overflow-y-auto space-y-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Display Name *
               </label>
               <input
@@ -1207,54 +1064,54 @@ function MutualFundsManagementSuite() {
                 value={form.displayName}
                 onChange={(e) => setForm({ ...form, displayName: e.target.value })}
                 placeholder="e.g. ARM Ethical Fund"
-                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
               />
               {formErrors.displayName && <p className="text-xs text-red-500 mt-1">{formErrors.displayName}</p>}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Short Description
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Description
               </label>
               <textarea
                 rows={2}
                 value={form.shortDescription}
                 onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
-                placeholder="Brief summary of fund strategy..."
-                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                placeholder="Brief summary..."
+                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Expected Yield Label
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Expected Yield
                 </label>
                 <input
                   type="text"
                   value={form.expectedYieldLabel}
                   onChange={(e) => setForm({ ...form, expectedYieldLabel: e.target.value })}
                   placeholder="e.g. 14.5% p.a."
-                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Duration Label
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Duration
                 </label>
                 <input
                   type="text"
                   value={form.durationLabel}
                   onChange={(e) => setForm({ ...form, durationLabel: e.target.value })}
                   placeholder="e.g. 12 – 36 months"
-                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                  className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg p-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Risk Level
               </label>
               <Select
@@ -1269,29 +1126,16 @@ function MutualFundsManagementSuite() {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                How You Earn Text
-              </label>
-              <textarea
-                rows={2}
-                value={form.howYouEarnText}
-                onChange={(e) => setForm({ ...form, howYouEarnText: e.target.value })}
-                placeholder="Details on returns calculation and payout schedule..."
-                className="w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Featured Recommendation</span>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <span className="text-xs text-gray-700 dark:text-gray-300">Featured Recommendation</span>
               <Switch
                 checked={form.isRecommended}
                 onChange={(checked) => setForm({ ...form, isRecommended: checked })}
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700">
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Active Status</span>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <span className="text-xs text-gray-700 dark:text-gray-300">Active Status</span>
               <Switch
                 checked={form.isActive}
                 onChange={(checked) => setForm({ ...form, isActive: checked })}
@@ -1302,10 +1146,10 @@ function MutualFundsManagementSuite() {
           <button
             type="submit"
             disabled={isCreating || isUpdating}
-            className="w-full py-3 bg-[#961A1C] text-white font-bold text-xs rounded-xl shadow-sm hover:bg-[#7a1517] transition cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-[#961A1C] text-white font-semibold text-xs rounded-lg hover:bg-[#7a1517] transition cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {isCreating || isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            <span>{drawerMode === 'create' ? 'Create Mutual Fund' : 'Save Changes'}</span>
+            <span>{drawerMode === 'create' ? 'Create Investment' : 'Save Changes'}</span>
           </button>
         </form>
       </Drawer>
@@ -1322,9 +1166,214 @@ function MutualFundsManagementSuite() {
         centered
       >
         <div className="py-2 text-xs text-gray-600 dark:text-gray-300">
-          Are you sure you want to delete mutual fund <strong>&ldquo;{deleteTarget?.displayName}&rdquo;</strong>?
+          Are you sure you want to delete <strong>&ldquo;{deleteTarget?.displayName}&rdquo;</strong>?
         </div>
       </Modal>
+
+    </div>
+  );
+}
+
+// ─── MUTUAL FUND DETAIL DRAWER CONTENT ───────────────────────────────────────
+function MutualFundDetailDrawerContent({ fundId, initialFund }: { fundId: string; initialFund: MutualFundContent }) {
+  const toast = useToast();
+  const { data } = useGetMutualFundContentQuery(fundId);
+  const [updateAllocations, { isLoading: isSavingAlloc }] = useUpdateMutualFundAllocationsMutation();
+  const [updateHoldings, { isLoading: isSavingHoldings }] = useUpdateMutualFundHoldingsMutation();
+
+  const fund = data?.data || initialFund;
+  const fundAny = fund as any;
+
+  const [allocations, setAllocations] = useState<AllocationItem[]>([]);
+  const [holdings, setHoldings] = useState<HoldingItem[]>([]);
+
+  useEffect(() => {
+    if (fundAny) {
+      setAllocations(fundAny.allocations ?? []);
+      setHoldings(fundAny.holdings ?? []);
+    }
+  }, [fundAny]);
+
+  async function handleSaveAllocations() {
+    try {
+      await updateAllocations({ id: fundId, items: allocations }).unwrap();
+      toast.success('Asset allocations updated.', 'Saved');
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Failed to save allocations.', 'Error');
+    }
+  }
+
+  async function handleSaveHoldings() {
+    try {
+      await updateHoldings({ id: fundId, items: holdings }).unwrap();
+      toast.success('Fund holdings updated.', 'Saved');
+    } catch (err: any) {
+      toast.error(err?.data?.statusMessage || 'Failed to save holdings.', 'Error');
+    }
+  }
+
+  return (
+    <div className="space-y-6 text-xs overflow-y-auto max-h-full pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      
+      {/* Overview */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase">Expected Yield</span>
+          <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{fund.expectedYieldLabel || '14.5% p.a.'}</p>
+        </div>
+
+        <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase">Tenor Duration</span>
+          <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{fund.durationLabel || '12 – 36 months'}</p>
+        </div>
+      </div>
+
+      {fund.shortDescription && (
+        <div className="p-3.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-1">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase">Description</span>
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{fund.shortDescription}</p>
+        </div>
+      )}
+
+      {/* Asset Allocations */}
+      <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-gray-900 dark:text-white">Asset Allocation</h4>
+          <button
+            onClick={() => setAllocations([...allocations, { assetName: 'New Asset Class', minPercent: 0, maxPercent: 20 }])}
+            className="text-[11px] font-semibold text-[#961A1C] hover:underline cursor-pointer"
+          >
+            + Add Asset
+          </button>
+        </div>
+
+        {allocations.length === 0 ? (
+          <p className="text-gray-400 italic">No asset allocations defined yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {allocations.map((alloc, idx) => (
+              <div key={idx} className="space-y-1 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">
+                <div className="flex items-center justify-between">
+                  <input
+                    type="text"
+                    value={alloc.assetName}
+                    onChange={(e) => {
+                      const updated = [...allocations];
+                      updated[idx].assetName = e.target.value;
+                      setAllocations(updated);
+                    }}
+                    className="font-medium text-gray-800 dark:text-gray-200 bg-transparent outline-none border-b border-dashed border-gray-300 dark:border-gray-700"
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-400">Min:</span>
+                    <input
+                      type="number"
+                      value={alloc.minPercent}
+                      onChange={(e) => {
+                        const updated = [...allocations];
+                        updated[idx].minPercent = Number(e.target.value);
+                        setAllocations(updated);
+                      }}
+                      className="w-10 font-bold text-right text-gray-900 dark:text-white bg-transparent outline-none border-b border-dashed border-gray-300 dark:border-gray-700"
+                    />
+                    <span className="text-[10px] text-gray-400">Max:</span>
+                    <input
+                      type="number"
+                      value={alloc.maxPercent}
+                      onChange={(e) => {
+                        const updated = [...allocations];
+                        updated[idx].maxPercent = Number(e.target.value);
+                        setAllocations(updated);
+                      }}
+                      className="w-10 font-bold text-right text-gray-900 dark:text-white bg-transparent outline-none border-b border-dashed border-gray-300 dark:border-gray-700"
+                    />
+                    <span className="font-bold text-gray-400">%</span>
+                    <button
+                      onClick={() => setAllocations(allocations.filter((_, i) => i !== idx))}
+                      className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                </div>
+                <Progress percent={alloc.maxPercent} strokeColor="#961A1C" showInfo={false} size="small" />
+              </div>
+            ))}
+
+            <button
+              onClick={handleSaveAllocations}
+              disabled={isSavingAlloc}
+              className="w-full py-2 bg-[#961A1C] text-white font-medium rounded-lg text-xs hover:bg-[#7a1517] transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              {isSavingAlloc ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              <span>Save Allocations</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Fund Holdings */}
+      <div className="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-gray-900 dark:text-white">Holdings</h4>
+          <button
+            onClick={() => setHoldings([...holdings, { holdingName: 'New Holding Security', minPercent: 0, maxPercent: 10 }])}
+            className="text-[11px] font-semibold text-[#961A1C] hover:underline cursor-pointer"
+          >
+            + Add Holding
+          </button>
+        </div>
+
+        {holdings.length === 0 ? (
+          <p className="text-gray-400 italic">No holdings added yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {holdings.map((hold, idx) => (
+              <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">
+                <input
+                  type="text"
+                  value={hold.holdingName}
+                  onChange={(e) => {
+                    const updated = [...holdings];
+                    updated[idx].holdingName = e.target.value;
+                    setHoldings(updated);
+                  }}
+                  className="font-medium text-gray-800 dark:text-gray-200 bg-transparent outline-none border-b border-dashed border-gray-300 dark:border-gray-700"
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-400">Max:</span>
+                  <input
+                    type="number"
+                    value={hold.maxPercent}
+                    onChange={(e) => {
+                      const updated = [...holdings];
+                      updated[idx].maxPercent = Number(e.target.value);
+                      setHoldings(updated);
+                    }}
+                    className="w-10 font-bold text-right text-gray-900 dark:text-white bg-transparent outline-none border-b border-dashed border-gray-300 dark:border-gray-700"
+                  />
+                  <span className="font-bold text-gray-400">%</span>
+                  <button
+                    onClick={() => setHoldings(holdings.filter((_, i) => i !== idx))}
+                    className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={handleSaveHoldings}
+              disabled={isSavingHoldings}
+              className="w-full py-2 bg-[#961A1C] text-white font-medium rounded-lg text-xs hover:bg-[#7a1517] transition flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+            >
+              {isSavingHoldings ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              <span>Save Holdings</span>
+            </button>
+          </div>
+        )}
+      </div>
 
     </div>
   );
