@@ -134,6 +134,7 @@ export default function DashboardLayout({
                   isOpen={sidebarOpen}
                   subItems={[
                     { label: "Portfolio Settings", href: "/dashboard/retail/portfolio" },
+                    { label: "Settings", href: "/dashboard/retail/settings" },
                   ]}
                 />
               </nav>
@@ -162,6 +163,7 @@ export default function DashboardLayout({
                     { label: "Products", href: "/dashboard/retail/products" },
                     { label: "Analytics", href: "/dashboard/retail/analytics" },
                     { label: "Portfolio Settings", href: "/dashboard/retail/portfolio" },
+                    { label: "Settings", href: "/dashboard/retail/settings" },
                   ]}
                 />
 

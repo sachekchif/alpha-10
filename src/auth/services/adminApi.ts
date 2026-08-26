@@ -182,6 +182,25 @@ export interface CreatePortfolioDurationRequest {
   displayOrder?: number;
 }
 
+export interface RetailGLMapping {
+  mutualFundsGL: string | null;
+  fixedDepositGL: string | null;
+  bondsGL: string | null;
+  stocksGL: string | null;
+}
+
+export interface SystemDateResponse {
+  systemDate: string | null;
+}
+
+export interface ApiProblemDetails {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+}
+
 // ─── createApi ───────────────────────────────────────────────────────────────
 export const adminApi = createApi({
   reducerPath: 'adminApi',
@@ -210,6 +229,7 @@ export const adminApi = createApi({
     'MutualFundContent',
     'PortfolioCategories',
     'PortfolioDurations',
+    'RetailSettings',
   ],
   endpoints: (builder) => ({
     // ── Admin Users ──────────────────────────────────────────────────────────
@@ -421,6 +441,35 @@ export const adminApi = createApi({
       }),
       invalidatesTags: ['PortfolioDurations'],
     }),
+
+    // ── Retail Settings (GL Mapping & CORE System Date) ─────────────────────
+    getRetailGLs: builder.query<ApiResponse<RetailGLMapping>, void>({
+      query: () => '/admin/settings/Fetch-GLs',
+      providesTags: ['RetailSettings'],
+    }),
+
+    updateRetailGLs: builder.mutation<ApiResponse<RetailGLMapping>, RetailGLMapping>({
+      query: (body) => ({
+        url: '/admin/settings/UpdateGls',
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['RetailSettings'],
+    }),
+
+    getSystemDate: builder.query<ApiResponse<SystemDateResponse>, void>({
+      query: () => '/admin/settings/Fetch-System-Date',
+      providesTags: ['RetailSettings'],
+    }),
+
+    updateSystemDate: builder.mutation<ApiResponse<SystemDateResponse>, { systemDate: string }>({
+      query: (body) => ({
+        url: '/admin/settings/UpdateSystemDate',
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['RetailSettings'],
+    }),
   }),
 });
 
@@ -455,4 +504,9 @@ export const {
   useCreatePortfolioDurationMutation,
   useUpdatePortfolioDurationMutation,
   useDeletePortfolioDurationMutation,
+  // Retail Settings
+  useGetRetailGLsQuery,
+  useUpdateRetailGLsMutation,
+  useGetSystemDateQuery,
+  useUpdateSystemDateMutation,
 } = adminApi;
