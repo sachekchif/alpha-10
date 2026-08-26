@@ -1,0 +1,294 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>Alpha-10 Backend Feedback - Investment Education</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+  @page {
+    size: A4;
+    margin: 1in;
+  }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #1a1a1a;
+    background-color: #ffffff;
+  }
+  .header-box {
+    background-color: #fafafa;
+    border-left: 5pt solid #961A1C;
+    padding: 12pt 16pt;
+    margin-bottom: 20pt;
+  }
+  h1 {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #961A1C;
+    margin: 0 0 6pt 0;
+  }
+  .meta-text {
+    font-size: 9.5pt;
+    color: #555555;
+    margin: 0;
+  }
+  h2 {
+    font-size: 13pt;
+    font-weight: bold;
+    color: #111827;
+    margin-top: 18pt;
+    margin-bottom: 8pt;
+    border-bottom: 1.5pt solid #e5e7eb;
+    padding-bottom: 3pt;
+  }
+  h3 {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #1f2937;
+    margin-top: 12pt;
+    margin-bottom: 4pt;
+  }
+  p, li {
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #374151;
+  }
+  ul {
+    margin-top: 4pt;
+    margin-bottom: 8pt;
+    padding-left: 20pt;
+  }
+  li {
+    margin-bottom: 3pt;
+  }
+  .callout {
+    background-color: #fef2f2;
+    border-left: 3.5pt solid #961A1C;
+    padding: 8pt 12pt;
+    margin: 8pt 0 12pt 0;
+  }
+  .callout-title {
+    font-weight: bold;
+    color: #961A1C;
+    font-size: 10pt;
+    margin-bottom: 2pt;
+  }
+  pre {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9pt;
+    background-color: #f8fafc;
+    border: 1pt solid #e2e8f0;
+    padding: 8pt 10pt;
+    border-radius: 4pt;
+    margin: 6pt 0 10pt 0;
+    white-space: pre-wrap;
+    color: #0f172a;
+  }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9.5pt;
+    background-color: #f1f5f9;
+    padding: 1.5pt 4pt;
+    border-radius: 3pt;
+    color: #b91c1c;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10pt 0 16pt 0;
+  }
+  th, td {
+    border: 1pt solid #cbd5e1;
+    padding: 6pt 8pt;
+    text-align: left;
+    font-size: 9.5pt;
+  }
+  th {
+    background-color: #f1f5f9;
+    font-weight: bold;
+    color: #0f172a;
+  }
+</style>
+</head>
+<body>
+
+<div class="header-box">
+  <h1>📋 Backend API Feedback & Clarifications</h1>
+  <p class="meta-text"><strong>System:</strong> Alpha-10 LMS Back Office · Retail Investor Education</p>
+  <p class="meta-text"><strong>Date:</strong> August 22, 2026</p>
+  <p class="meta-text"><strong>Target:</strong> Backend Engineering Team</p>
+  <p class="meta-text"><strong>Prepared by:</strong> Front-end Team</p>
+</div>
+
+<h2>❓ 1. Critical Questions & Clarifications</h2>
+
+<h3>Question A: The <code>code</code> Field & Predefined System Identifiers</h3>
+<p>In the education API response, each item contains a <code>code</code> field (e.g., <code>"mutual_funds"</code>):</p>
+<pre>{
+  "code": "mutual_funds",
+  "title": "Mutual Funds"
+}</pre>
+<ul>
+  <li><strong>Question:</strong> Is <code>code</code> an internal identifier expected to match specific mobile app handlers, investment product modules, or asset classes (e.g. <code>mutual_funds</code>, <code>treasury_bills</code>, <code>fixed_deposit</code>, <code>eurobonds</code>)?</li>
+  <li><strong>Action / Proposal:</strong> If the backend expects specific predefined codes, please provide a dictionary lookup endpoint:
+    <ul>
+      <li><code>GET /admin/investment-education/codes</code> (or <code>GET /admin/investment-education/available-types</code>)</li>
+      <li>This enables the admin interface to render a clean dropdown selector for admins, eliminating typos or invalid arbitrary slug strings that could break mobile app routing or product linking.</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Question B: Domain Flags (<code>capitalGuaranteed</code>, <code>returnsGuaranteed</code>, <code>withdrawalRestrictions</code>)</h3>
+<pre>{
+  "capitalGuaranteed": false,
+  "returnsGuaranteed": false,
+  "withdrawalRestrictions": true
+}</pre>
+<ul>
+  <li><strong>Question:</strong> What is the exact business/product logic behind these three boolean flags?</li>
+  <li>How are they consumed by the retail mobile app? (e.g., Do they trigger compliance warning banners, regulatory risk disclaimers, or filter rules?)</li>
+  <li>Are there validation rules associated with certain <code>code</code> or <code>riskLevel</code> combinations (e.g., if <code>riskLevel == "High"</code>, can <code>capitalGuaranteed</code> ever be <code>true</code>)?</li>
+</ul>
+
+<h2>🔴 2. High-Priority API Enhancements</h2>
+
+<h3>1. Implement <code>PATCH</code> Endpoint for Partial Updates (Crucial)</h3>
+<p>Currently, only <code>PUT /admin/investment-education/{id}</code> exists, requiring the full object payload even to toggle a status or change display ordering. This is inefficient, prone to race conditions, and heavy for simple admin actions.</p>
+
+<div class="callout">
+  <div class="callout-title">Required Action:</div>
+  Support <code>PATCH /admin/investment-education/{id}</code> accepting partial updates:
+</div>
+
+<p><strong>Example 1: Quick Publish / Unpublish Status Toggle:</strong></p>
+<pre>PATCH /admin/investment-education/bbbbbbbb-1111-2222-3333-444444444444
+Content-Type: application/json
+
+{
+  "isActive": false
+}</pre>
+
+<p><strong>Example 2: Display Order Adjustment:</strong></p>
+<pre>PATCH /admin/investment-education/bbbbbbbb-1111-2222-3333-444444444444
+Content-Type: application/json
+
+{
+  "displayOrder": 2
+}</pre>
+
+<h3>2. Standardized Pagination Envelope</h3>
+<p>The current response returns a raw <code>data: [...]</code> array without pagination metadata. As educational modules grow, paginated queries will be essential.</p>
+
+<div class="callout">
+  <div class="callout-title">Required Action:</div>
+  Return a paginated metadata envelope and support query parameters <code>?pageNumber=1&amp;pageSize=20</code>:
+</div>
+
+<pre>{
+  "statusCode": 200,
+  "statusMessage": "Success",
+  "data": {
+    "items": [
+      {
+        "id": "bbbbbbbb-1111-2222-3333-444444444444",
+        "code": "mutual_funds",
+        "title": "Mutual Funds",
+        "riskLevel": "High",
+        "isActive": true,
+        "displayOrder": 1
+      }
+    ],
+    "totalCount": 24,
+    "pageNumber": 1,
+    "pageSize": 20,
+    "totalPages": 2
+  }
+}</pre>
+
+<h3>3. Enum Validation for <code>riskLevel</code></h3>
+<ul>
+  <li>The sample response returned <code>"riskLevel": "High Risk"</code>, whereas standard contracts use <code>"High"</code>.</li>
+  <li><strong>Action Required:</strong> Enforce a strict enum contract: <code>["Low", "Medium", "High", "Very High"]</code>.</li>
+  <li>Ensure payload validation returns a descriptive <code>400 Bad Request</code> if an unexpected variant is sent.</li>
+</ul>
+
+<h3>4. Server-Side Search &amp; Filtering</h3>
+<p>Currently, filtering and search are performed on the client.</p>
+<div class="callout">
+  <div class="callout-title">Required Action:</div>
+  Support query filtering on <code>GET /admin/investment-education</code>:
+</div>
+<ul>
+  <li><code>?search=mutual</code> (matches code, title, or description)</li>
+  <li><code>?riskLevel=High</code></li>
+  <li><code>?isActive=true</code></li>
+  <li><code>?pageNumber=1&amp;pageSize=20</code></li>
+</ul>
+
+<h2>🟡 3. Recommended Content Improvements</h2>
+
+<h3>5. Structured Content Steps for <code>howItWorks</code></h3>
+<p>Currently, <code>howItWorksText</code> is a single string with raw newline characters (<code>\n</code>):</p>
+<pre>"howItWorksText": "1. Choose a fund that matches your goals.\n2. Deposit an amount..."</pre>
+<p>Newline-delimited strings are fragile across mobile clients (iOS/Android) and rich web formatters.</p>
+<div class="callout">
+  <div class="callout-title">Recommended:</div>
+  Support structured steps in the JSON schema:
+</div>
+<pre>"howItWorksSteps": [
+  { "step": 1, "title": "Select Fund", "description": "Choose a fund that matches your goals." },
+  { "step": 2, "title": "Fund Account", "description": "Deposit an amount at or above the minimum." },
+  { "step": 3, "title": "Allocation", "description": "Units are allocated at the prevailing offer price." }
+]</pre>
+
+<h3>6. Reading Time &amp; Category (Optional Enhancements)</h3>
+<ul>
+  <li><strong><code>readingTimeMinutes</code>:</strong> Can be estimated on the backend from word count or configured by the admin.</li>
+  <li><strong><code>category</code>:</strong> Optional grouping (e.g., <code>Fixed Income</code>, <code>Equities</code>, <code>Savings</code>, <code>Alternative</code>).</li>
+</ul>
+
+<h2>🟢 4. New Endpoints Summary</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 40%;">Endpoint</th>
+      <th style="width: 15%;">Method</th>
+      <th style="width: 45%;">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/admin/investment-education</code></td>
+      <td><strong>GET</strong></td>
+      <td>List modules with pagination, search, and risk filters</td>
+    </tr>
+    <tr>
+      <td><code>/admin/investment-education/codes</code></td>
+      <td><strong>GET</strong></td>
+      <td>Return list of supported/valid system module codes</td>
+    </tr>
+    <tr>
+      <td><code>/admin/investment-education/{id}</code></td>
+      <td><strong>PATCH</strong></td>
+      <td>Partial update (toggle <code>isActive</code>, modify <code>displayOrder</code>)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>💡 5. Note on Entity ID Handling</h2>
+<ul>
+  <li><strong>Backend:</strong> <code>id</code> (UUID) in the payload is standard and expected for RESTful CRUD operations (<code>GET /:id</code>, <code>PUT /:id</code>, <code>PATCH /:id</code>, <code>DELETE /:id</code>).</li>
+  <li><strong>Frontend:</strong> The frontend interface hides all raw database UUIDs from admin view and displays human-friendly identifiers (<code>title</code>, <code>code</code>, <code>order</code>, status badges) instead.</li>
+</ul>
+
+</body>
+</html>

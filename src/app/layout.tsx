@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { StoreProvider } from "../auth/store/StoreProvider";
+import { ToastProvider } from "../auth/components/ToastContainer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -8,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "alpha10 Dashboard",
-  description: "Commercial and Banking Admin Dashboard",
+  title: "Alpha10 Banking Control Center",
+  description: "Enterprise Commercial and Banking Admin Dashboard",
 };
 
 export default function RootLayout({
@@ -21,8 +23,15 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.className} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#08080a] text-white" suppressHydrationWarning>
+        <StoreProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </StoreProvider>
+      </body>
     </html>
   );
 }

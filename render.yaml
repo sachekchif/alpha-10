@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: alpha10-admin
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: NEXT_PUBLIC_API_URL
+        value: https://mobile-test.alpha10group.com/alphaten-admin/api

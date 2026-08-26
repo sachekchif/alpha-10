@@ -13,9 +13,9 @@ import {
 export default function StatCards({ role }: { role: string }) {
   // Mock Data
   const financialStats = [
-    { title: "Total Wallet Balance", value: "₦4.2B", change: "+12.5%", isPositive: true, icon: Wallet, color: "bg-blue-500" },
-    { title: "Total Inflow (Today)", value: "₦125.4M", change: "+4.2%", isPositive: true, icon: TrendingUp, color: "bg-emerald-500" },
-    { title: "Total Outflow (Today)", value: "₦84.2M", change: "-2.1%", isPositive: false, icon: TrendingDown, color: "bg-rose-500" },
+    { title: "Total Wallet Balance", value: "4.2B", change: "+12.5%", isPositive: true, icon: Wallet, color: "bg-blue-500" },
+    { title: "Total Inflow (Today)", value: "125.4M", change: "+4.2%", isPositive: true, icon: TrendingUp, color: "bg-emerald-500" },
+    { title: "Total Outflow (Today)", value: "84.2M", change: "-2.1%", isPositive: false, icon: TrendingDown, color: "bg-rose-500" },
     { title: "Total Transactions", value: "14,029", change: "+8.4%", isPositive: true, icon: Activity, color: "bg-purple-500" },
   ];
 
