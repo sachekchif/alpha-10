@@ -369,7 +369,7 @@ function InvestmentManagementContent() {
       {/* 2. CONSOLIDATED HIGH-SIGNAL METRIC CARDS (4 CARDS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* CARD 1: PORTFOLIO VALUE & CAPITAL */}
+        {/* CARD 1: PORTFOLIO VALUE & CAPITAL (REAL API DATA) */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-[#961A1C] rounded-r-md" />
           <div className="flex items-center justify-between pl-2">
@@ -385,12 +385,14 @@ function InvestmentManagementContent() {
           </div>
         </div>
 
-        {/* CARD 2: ACTIVE PORTFOLIO */}
+        {/* CARD 2: ACTIVE PORTFOLIO (TEST DATA OVERLAY) */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+            TEST DATA
+          </div>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-emerald-500 rounded-r-md" />
-          <div className="flex items-center justify-between pl-2">
+          <div className="flex items-center justify-between pl-2 pr-16">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Active Investments</span>
-            <Tag color="emerald" className="font-semibold text-[10px] m-0">Earning Yield</Tag>
           </div>
           <div className="my-2.5 pl-2">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">32,450</h2>
@@ -401,12 +403,14 @@ function InvestmentManagementContent() {
           </div>
         </div>
 
-        {/* CARD 3: ACCRUED YIELD & RETURNS */}
+        {/* CARD 3: ACCRUED YIELD & RETURNS (TEST DATA OVERLAY) */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+            TEST DATA
+          </div>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-blue-500 rounded-r-md" />
-          <div className="flex items-center justify-between pl-2">
+          <div className="flex items-center justify-between pl-2 pr-16">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Interest Accrued</span>
-            <Tag color="blue" className="font-semibold text-[10px] m-0">+14.5% Avg ROI</Tag>
           </div>
           <div className="my-2.5 pl-2">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">₦1.12B</h2>
@@ -417,12 +421,14 @@ function InvestmentManagementContent() {
           </div>
         </div>
 
-        {/* CARD 4: MATURITY & LIQUIDITY OUTLOOK */}
+        {/* CARD 4: MATURITY & LIQUIDITY OUTLOOK (TEST DATA OVERLAY) */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+          <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+            TEST DATA
+          </div>
           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-amber-500 rounded-r-md" />
-          <div className="flex items-center justify-between pl-2">
+          <div className="flex items-center justify-between pl-2 pr-16">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Maturing Today</span>
-            <Tag color="red" className="font-bold text-[10px] m-0">Liquidity</Tag>
           </div>
           <div className="my-2.5 pl-2 flex items-baseline gap-2">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">12</h2>
@@ -436,11 +442,14 @@ function InvestmentManagementContent() {
 
       </div>
 
-      {/* 4. ANALYTICS SECTION (CHARTS & MATURITY CALENDAR) */}
+      {/* 4. ANALYTICS SECTION (CHARTS & MATURITY CALENDAR - TEST DATA OVERLAYS) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
-        {/* LINE CHART: INVESTMENT GROWTH TREND */}
-        <div className="lg:col-span-5 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs flex flex-col justify-between">
+        {/* LINE CHART: INVESTMENT GROWTH TREND (TEST DATA OVERLAY) */}
+        <div className="lg:col-span-5 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-3 right-28 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+            TEST DATA
+          </div>
           <div className="flex items-center justify-between gap-2">
             <div>
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">Portfolio Growth</h3>
@@ -482,8 +491,11 @@ function InvestmentManagementContent() {
           </div>
         </div>
 
-        {/* BAR CHART: INVESTMENT PRODUCTS BREAKDOWN */}
-        <div className="lg:col-span-4 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs flex flex-col justify-between">
+        {/* BAR CHART: INVESTMENT PRODUCTS BREAKDOWN (TEST DATA OVERLAY) */}
+        <div className="lg:col-span-4 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-3 right-3 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+            TEST DATA
+          </div>
           <div>
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">Product Distribution</h3>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Fixed Deposit, T-Bills, Mutual Funds, Bonds</p>
@@ -518,8 +530,11 @@ function InvestmentManagementContent() {
           </div>
         </div>
 
-        {/* MATURITY CALENDAR WIDGET */}
-        <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs flex flex-col justify-between space-y-3">
+        {/* MATURITY CALENDAR WIDGET (TEST DATA OVERLAY) */}
+        <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-xs flex flex-col justify-between space-y-3 relative overflow-hidden">
+          <div className="absolute top-3 right-3 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+            TEST DATA
+          </div>
           <div>
             <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
               <Calendar size={15} className="text-[#961A1C]" /> Maturity Calendar

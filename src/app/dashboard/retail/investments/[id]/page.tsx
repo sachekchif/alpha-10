@@ -6,7 +6,7 @@ import { Modal, Drawer, Select, Switch } from 'antd';
 import {
   ArrowLeft, BookOpen, Pencil, Trash2, X, Loader2, AlertCircle,
   Check, Shield, BarChart2, TrendingUp, Clock, Eye, Sparkles,
-  Wifi, Play, Plus, Upload, Users, Award, Zap,
+  Wifi, Plus, Upload, Users, Award, Zap,
 } from 'lucide-react';
 import { RoleGuard } from '@/auth/components/RoleGuard';
 import {
@@ -66,7 +66,6 @@ function InvestmentDetailContent() {
   const [form, setForm] = useState<(CreateInvestmentEducationRequest & { category?: string; tags?: string }) | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [steps, setSteps] = useState<string[]>([]);
-  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isConfirmDelete, setIsConfirmDelete] = useState(false);
 
   const { data, isLoading, isError, refetch } = useGetInvestmentEducationQuery(id);
@@ -97,7 +96,6 @@ function InvestmentDetailContent() {
       tags: 'Intermediate',
     });
     setSteps(rawSteps.length > 0 ? rawSteps : ['Choose an investment product that matches your financial goals.']);
-    setCoverImage(null);
     setFormErrors({});
     setIsEditing(true);
   }
@@ -131,7 +129,7 @@ function InvestmentDetailContent() {
         howItWorksText: formattedSteps || form.howItWorksText?.trim() || '',
       };
       await updateItem({ id, body: formattedBody }).unwrap();
-      toast.success('Investment product updated successfully.', 'Updated');
+      toast.success('Investment updated successfully.', 'Updated');
       setIsEditing(false);
     } catch (err: any) {
       toast.error(err?.data?.statusMessage || 'Update failed.', 'Error');
@@ -141,7 +139,7 @@ function InvestmentDetailContent() {
   async function handleDelete() {
     try {
       await deleteItem(id).unwrap();
-      toast.success('Product deleted successfully.', 'Deleted');
+      toast.success('Investment deleted successfully.', 'Deleted');
       router.push('/dashboard/retail/investments');
     } catch (err: any) {
       toast.error(err?.data?.statusMessage || 'Delete failed.', 'Delete Failed');
@@ -171,7 +169,7 @@ function InvestmentDetailContent() {
             onClick={() => router.push('/dashboard/retail/investments')}
             className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 font-medium transition-colors mb-1.5 cursor-pointer"
           >
-            <ArrowLeft size={14} /> Back to Investment Products
+            <ArrowLeft size={14} /> Back to Investments
           </button>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
             {item?.title || 'Loading Product Details...'}
@@ -189,7 +187,7 @@ function InvestmentDetailContent() {
               onClick={openEdit}
               className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition cursor-pointer"
             >
-              <Pencil size={14} /> Edit Product
+              <Pencil size={14} /> Edit Investment
             </button>
             <button
               onClick={() => setIsConfirmDelete(true)}
@@ -219,26 +217,15 @@ function InvestmentDetailContent() {
           {/* ── 70% Left Main Content Area (lg:col-span-8) ───────────── */}
           <div className="lg:col-span-8 space-y-6">
 
-            {/* Level Badge & Video Cover Media Box */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
-                  Intermediate
-                </span>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
-                  <Wifi size={12} />
-                  {item.riskLevel || 'Low'}
-                </span>
-              </div>
-
-              <div className="relative w-full h-64 sm:h-80 bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex items-center justify-center shadow-sm group">
-                <div className="w-16 h-16 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-xl transform group-hover:scale-110 transition cursor-pointer">
-                  <Play size={28} className="ml-1 fill-white" />
-                </div>
-                <div className="absolute bottom-4 left-4 text-xs font-semibold text-white/90 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10">
-                  12 min watch · Retail investor mobile hero video preview
-                </div>
-              </div>
+            {/* Level Badge & Risk Badge Bar (Video Section Removed) */}
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
+                Intermediate
+              </span>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                <Wifi size={12} />
+                {item.riskLevel || 'Low'}
+              </span>
             </div>
 
             {/* Title Heading & Description Card */}
@@ -272,7 +259,7 @@ function InvestmentDetailContent() {
             {/* How It Works Connected Steps */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 shadow-xs">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-                How It Works — Step-by-Step Investor Guide
+                How It Works — Step-by-Step Investment Guide
               </h3>
 
               {parsedSteps.length > 0 ? (
@@ -305,8 +292,12 @@ function InvestmentDetailContent() {
           {/* ── 30% Right Sidebar: Analytics & Conditions (lg:col-span-4) ─ */}
           <div className="lg:col-span-4 space-y-6">
 
-            {/* Engagement & Viewer Analytics */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 space-y-4 shadow-xs">
+            {/* Engagement & Viewer Analytics (Test Data Overlay) */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 space-y-4 shadow-xs relative overflow-hidden">
+              <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+                TEST DATA
+              </div>
+
               <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
                 <BarChart2 size={16} className="text-[#961A1C]" />
                 <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
@@ -360,7 +351,7 @@ function InvestmentDetailContent() {
                 <div>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Capital Requirement</span>
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    Would the user need capital to understand this lecture?
+                    Would the customer need capital for this investment?
                   </p>
                 </div>
                 <div>
@@ -381,7 +372,7 @@ function InvestmentDetailContent() {
                 <div>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">ROI & Returns</span>
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    The customer would get ROI after taking this lecture
+                    Will the customer receive guaranteed ROI for this investment?
                   </p>
                 </div>
                 <div>
@@ -402,7 +393,7 @@ function InvestmentDetailContent() {
                 <div>
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Withdrawal Restrictions</span>
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    Would the user have restrictions on withdrawal?
+                    Are there withdrawal restrictions on this investment?
                   </p>
                 </div>
                 <div>
@@ -442,7 +433,7 @@ function InvestmentDetailContent() {
                     Active
                   </span>
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
-                    Retail users can now have access to this investment product
+                    Retail users can now access this investment offering
                   </p>
                 </div>
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -465,7 +456,7 @@ function InvestmentDetailContent() {
         title={
           <div className="flex items-center justify-between text-gray-900 dark:text-white">
             <h3 className="text-md font-semibold text-gray-900 dark:text-white">
-              Edit Investment Product
+              Edit Investment
             </h3>
           </div>
         }
@@ -474,47 +465,6 @@ function InvestmentDetailContent() {
           <form onSubmit={handleUpdate} className="flex flex-col h-full">
 
             <div className="flex-1 overflow-y-auto space-y-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              {/* Cover Image Uploading & Preview Area */}
-              <div className="relative w-full h-48 bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex flex-col items-center justify-center group">
-                {coverImage ? (
-                  <>
-                    <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover opacity-85" />
-                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
-                        <Play size={20} className="ml-1 fill-white" />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCoverImage(null)}
-                      className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 text-white hover:bg-black transition cursor-pointer"
-                    >
-                      <X size={14} />
-                    </button>
-                  </>
-                ) : (
-                  <label className="flex flex-col items-center justify-center cursor-pointer w-full h-full p-4 hover:bg-gray-800/60 transition text-gray-400">
-                    <div className="w-12 h-12 rounded-full bg-red-600/20 text-[#961A1C] flex items-center justify-center mb-2">
-                      <Play size={20} className="ml-1 fill-[#961A1C]" />
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-200">
-                      <Upload size={14} /> Click or drop cover media thumbnail
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1">App thumbnail preview placeholder (UI Only)</p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setCoverImage(URL.createObjectURL(file));
-                        }
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
 
               {/* Tag Badge Display & Dropdown */}
               <div className="flex items-center justify-between gap-3">
@@ -539,20 +489,20 @@ function InvestmentDetailContent() {
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Product Title (e.g. Fixed Deposit Portfolio)"
+                  placeholder="Investment Title (e.g. Fixed Deposit High Yield Portfolio)"
                   className={`w-full text-xl sm:text-2xl font-bold bg-transparent text-gray-900 dark:text-white border-b-2 border-dashed focus:border-solid border-gray-300 dark:border-gray-700 py-1.5 focus:border-[#961A1C] outline-none transition placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
                     formErrors.title ? 'border-red-500' : ''
                   }`}
                 />
                 {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
-                <p className="text-[11px] text-gray-400 mt-1">Retail investor app header</p>
+                <p className="text-[11px] text-gray-400 mt-1">Retail investor app header title</p>
               </div>
 
-              {/* Education / Investment Type Dropdown & Category Type Dropdown */}
+              {/* Investment Type Dropdown & Category Type Dropdown */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                    Education Type *
+                    Investment Type *
                   </label>
                   <Select
                     value={form.code || 'mutual_funds'}
@@ -587,7 +537,7 @@ function InvestmentDetailContent() {
                     value={form.heroText}
                     onChange={(e) => setForm({ ...form, heroText: e.target.value })}
                     className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                    placeholder="Investment product summary..."
+                    placeholder="Investment product summary for retail investors..."
                   />
                 </div>
 
@@ -600,7 +550,7 @@ function InvestmentDetailContent() {
                     value={form.detailsText}
                     onChange={(e) => setForm({ ...form, detailsText: e.target.value })}
                     className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                    placeholder="On Alpha10, mutual funds and fixed deposits are a good starting point..."
+                    placeholder="Full investment terms, security backing, and strategy..."
                   />
                 </div>
               </div>
@@ -609,7 +559,7 @@ function InvestmentDetailContent() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                    How It Works (Steps)
+                    How It Works — Step-by-Step Investment Guide
                   </label>
                   <button
                     type="button"
@@ -663,7 +613,7 @@ function InvestmentDetailContent() {
                 <div className="flex items-center gap-2 mb-3">
                   <Wifi size={16} className="text-[#961A1C]" />
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                    Risk Level
+                    Risk Level Profile
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -700,7 +650,7 @@ function InvestmentDetailContent() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                   <div className="pr-3">
                     <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                      Would the user need capital to understand this lecture?
+                      Would the customer need capital for this investment?
                     </p>
                     <p className="text-[10px] text-gray-400 mt-0.5">Capital Guaranteed</p>
                   </div>
@@ -714,7 +664,7 @@ function InvestmentDetailContent() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                   <div className="pr-3">
                     <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                      The customer would get ROI after taking this lecture
+                      Will the customer receive guaranteed ROI for this investment?
                     </p>
                     <p className="text-[10px] text-gray-400 mt-0.5">Returns Guaranteed</p>
                   </div>
@@ -728,7 +678,7 @@ function InvestmentDetailContent() {
                 <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                   <div className="pr-3">
                     <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                      Would the user have restrictions on withdrawal?
+                      Are there withdrawal restrictions on this investment?
                     </p>
                     <p className="text-[10px] text-gray-400 mt-0.5">Withdrawal Restrictions</p>
                   </div>
@@ -747,7 +697,7 @@ function InvestmentDetailContent() {
                       Active
                     </span>
                     <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
-                      Retail users can now have access to this investment product
+                      Retail users can now access this investment offering
                     </p>
                   </div>
                   <Switch
@@ -793,7 +743,7 @@ function InvestmentDetailContent() {
               <Trash2 size={22} />
             </div>
           </div>
-          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Delete Product</h3>
+          <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">Delete Investment</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
             Are you sure you want to delete <strong className="text-gray-800 dark:text-white">&ldquo;{item?.title}&rdquo;</strong>? This cannot be undone.
           </p>
