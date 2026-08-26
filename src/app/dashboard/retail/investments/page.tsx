@@ -3,14 +3,14 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { 
-  Select, Modal, Input, Tag, Button, Dropdown, MenuProps, message 
+  Select, Modal, Drawer, Input, Tag, Button, Dropdown, MenuProps, message, Switch 
 } from 'antd';
 import { 
   TrendingUp, BarChart3, PieChart as PieChartIcon, Activity, Search, Filter, 
   MoreVertical, Clock, CheckCircle2, XCircle, Download, Calendar, ChevronRight,
   Plus, ArrowUpRight, ArrowDownRight, RefreshCw, DollarSign, Shield, FileText,
   User, Award, Eye, FileSpreadsheet, RotateCcw, AlertTriangle, Layers, Building2,
-  Lock, Unlock, ChevronDown, Check, UserCheck, ShieldAlert, Loader2, Trash2, Pencil
+  Lock, Unlock, ChevronDown, Check, UserCheck, ShieldAlert, Loader2, Trash2, Pencil, Wifi, X, Play, Upload
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Cell, Tooltip as RechartsTooltip 
@@ -27,70 +27,14 @@ import {
 import { useToast } from '@/auth/components/ToastContainer';
 
 // --- TYPES ---
-export type InvestmentStatus = 'Pending Approval' | 'Active' | 'Matured' | 'Redeemed' | 'Cancelled';
-export type InvestmentState = 'Healthy' | 'Under Review' | 'On Hold' | 'Compliance Review' | 'Awaiting Funding' | 'Awaiting Redemption' | 'Disputed';
-export type ProductType = 'Fixed Deposit' | 'Treasury Bills' | 'Mutual Fund' | 'Bond' | 'Dollar Investment' | 'Other Products';
-export type Currency = 'NGN' | 'USD' | 'GBP' | 'EUR';
+export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Very High';
 
-export interface InvestmentRecord {
-  id: string;
-  customerName: string;
-  customerId: string;
-  accountNumber: string;
-  phone: string;
-  product: string;
-  currency: Currency;
-  principal: number;
-  interestRate: number;
-  currentValue: number;
-  status: InvestmentStatus;
-  state: InvestmentState;
-  startDate: string;
-  maturityDate: string;
-  relationshipManager: string;
-  tenureMonths: number;
-  apiItem?: InvestmentEducation;
-}
-
-// --- BADGE COMPONENTS ---
-export function InvestmentStatusBadge({ status }: { status: InvestmentStatus }) {
-  const styles: Record<InvestmentStatus, { bg: string; text: string; border: string }> = {
-    'Active': { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-200/60 dark:border-emerald-800/50' },
-    'Pending Approval': { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-200/60 dark:border-amber-800/50' },
-    'Matured': { bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-400', border: 'border-blue-200/60 dark:border-blue-800/50' },
-    'Redeemed': { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-400', border: 'border-purple-200/60 dark:border-purple-800/50' },
-    'Cancelled': { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-200 dark:border-gray-700' },
-  };
-
-  const style = styles[status] || styles['Active'];
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${style.bg} ${style.text} ${style.border}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current" />
-      {status}
-    </span>
-  );
-}
-
-export function InvestmentStateBadge({ state }: { state: InvestmentState }) {
-  const styles: Record<InvestmentState, { bg: string }> = {
-    'Healthy': { bg: 'bg-emerald-100/70 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
-    'Under Review': { bg: 'bg-amber-100/70 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
-    'On Hold': { bg: 'bg-orange-100/70 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' },
-    'Compliance Review': { bg: 'bg-purple-100/70 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
-    'Awaiting Funding': { bg: 'bg-blue-100/70 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-    'Awaiting Redemption': { bg: 'bg-indigo-100/70 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' },
-    'Disputed': { bg: 'bg-red-100/70 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-  };
-
-  const style = styles[state] || styles['Healthy'];
-
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${style.bg}`}>
-      {state}
-    </span>
-  );
-}
+const RISK_META: Record<RiskLevel, { color: string; bg: string }> = {
+  Low: { color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' },
+  Medium: { color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200' },
+  High: { color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200' },
+  'Very High': { color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/40 border-red-200' },
+};
 
 const PRODUCT_COLORS: Record<string, string> = {
   'Fixed Deposit': '#961A1C',
@@ -100,6 +44,28 @@ const PRODUCT_COLORS: Record<string, string> = {
   'Dollar Investment': '#8B5CF6',
   'Other Products': '#6B7280',
 };
+
+const INVESTMENT_TYPES = [
+  { value: 'mutual_funds', label: 'Mutual Funds' },
+  { value: 'investment_banking', label: 'Investment Banking' },
+  { value: 'treasury_bills', label: 'Treasury Bills' },
+  { value: 'fixed_deposit', label: 'Fixed Deposit' },
+  { value: 'bonds', label: 'Bonds' },
+  { value: 'equities', label: 'Equities' },
+  { value: 'savings', label: 'Savings' },
+  { value: 'eurobonds', label: 'Eurobonds' },
+];
+
+const TAG_OPTIONS = [
+  { value: 'Beginner', label: 'Beginner' },
+  { value: 'Intermediate', label: 'Intermediate' },
+  { value: 'Advanced', label: 'Advanced' },
+  { value: 'Expert', label: 'Expert' },
+];
+
+const CATEGORY_OPTIONS = [
+  'Fixed Income', 'Equity', 'Money Market', 'Savings', 'Alternative', 'USD Investment', 'Investment Banking',
+];
 
 // GROWTH TREND DATA MAP
 const growthTrendDataMap = {
@@ -136,6 +102,22 @@ const growthTrendDataMap = {
   ],
 };
 
+const emptyForm = (): CreateInvestmentEducationRequest & { category?: string; tags?: string } => ({
+  code: 'mutual_funds',
+  title: '',
+  heroText: '',
+  detailsText: '',
+  howItWorksText: '',
+  riskLevel: 'Low',
+  capitalGuaranteed: false,
+  returnsGuaranteed: false,
+  withdrawalRestrictions: false,
+  isActive: true,
+  displayOrder: 0,
+  category: 'Fixed Income',
+  tags: 'Intermediate',
+});
+
 export default function InvestmentManagementPage() {
   return (
     <RoleGuard allowedRoles={['SuperAdmin', 'Control']}>
@@ -151,30 +133,24 @@ function InvestmentManagementContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<string>('All');
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('All');
-  const [selectedRm, setSelectedRm] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<string>('principal-desc');
+  const [selectedRisk, setSelectedRisk] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<string>('order-asc');
   const [growthPeriod, setGrowthPeriod] = useState<'Daily' | 'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
 
-  // Modals State
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  // Modals & Drawers State
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | null>(null);
+  const [selectedItem, setSelectedItem] = useState<InvestmentEducation | null>(null);
+  const [form, setForm] = useState<CreateInvestmentEducationRequest & { category?: string; tags?: string }>(emptyForm());
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [steps, setSteps] = useState<string[]>(['Choose an investment product that matches your financial goals.']);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [redeemModalOpen, setRedeemModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<InvestmentEducation | null>(null);
-  const [selectedInvestment, setSelectedInvestment] = useState<InvestmentRecord | null>(null);
-
-  // Form State for API dispatch
-  const [newTitle, setNewTitle] = useState('');
-  const [newCode, setNewCode] = useState('mutual_funds');
-  const [newHeroText, setNewHeroText] = useState('');
-  const [newRiskLevel, setNewRiskLevel] = useState('Low');
-  const [newCapitalGuaranteed, setNewCapitalGuaranteed] = useState(false);
-  const [newReturnsGuaranteed, setNewReturnsGuaranteed] = useState(false);
-  const [newWithdrawalRestrictions, setNewWithdrawalRestrictions] = useState(false);
 
   // RTK Query hooks
   const { data, isFetching, refetch } = useGetInvestmentEducationsQuery({ pageNumber: 1, pageSize: 50 });
   const [createItem, { isLoading: isCreating }] = useCreateInvestmentEducationMutation();
+  const [updateItem, { isLoading: isUpdating }] = useUpdateInvestmentEducationMutation();
   const [deleteItem, { isLoading: isDeleting }] = useDeleteInvestmentEducationMutation();
 
   const apiItems: InvestmentEducation[] = Array.isArray(data?.data)
@@ -188,82 +164,125 @@ function InvestmentManagementContent() {
     return Math.max(...apiItems.map((i) => i.displayOrder ?? 0));
   }, [apiItems]);
 
-  // Combine real API items with dashboard display schema
-  const investments: InvestmentRecord[] = useMemo(() => {
-    if (apiItems.length > 0) {
-      return apiItems.map((item, idx) => ({
-        id: item.id || `INV-${7721 + idx}`,
-        customerName: item.title || 'Investment Product',
-        customerId: `MOD-${item.code || 'SYS'}`,
-        accountNumber: `01234567${idx.toString().padStart(2, '0')}`,
-        phone: item.heroText || 'Retail Investment Offering',
-        product: item.code ? item.code.replace(/_/g, ' ').toUpperCase() : 'MUTUAL FUNDS',
-        currency: 'NGN',
-        principal: 5000000 + (idx * 2500000),
-        interestRate: item.riskLevel === 'High' ? 18.5 : item.riskLevel === 'Medium' ? 14.5 : 12.0,
-        currentValue: 5362500 + (idx * 2700000),
-        status: item.isActive ? 'Active' : 'Pending Approval',
-        state: item.capitalGuaranteed ? 'Healthy' : 'Under Review',
-        startDate: '15 Aug 2025',
-        maturityDate: '15 Aug 2026',
-        relationshipManager: 'Sarah Jenkins',
-        tenureMonths: 12,
-        apiItem: item,
-      }));
-    }
-    return [];
-  }, [apiItems]);
+  const activeCount = apiItems.filter((i) => i.isActive).length;
+
+  const formatModuleCode = (code?: string) => {
+    if (!code) return '—';
+    const found = INVESTMENT_TYPES.find((t) => t.value === code);
+    if (found) return found.label;
+    return code.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  };
 
   // Filtered & Sorted Investments
-  const filteredInvestments = useMemo(() => {
-    return investments.filter((inv) => {
+  const filteredItems = useMemo(() => {
+    return apiItems.filter((item) => {
       const matchesSearch = 
-        inv.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        inv.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        inv.accountNumber.includes(searchQuery) ||
-        inv.product.toLowerCase().includes(searchQuery.toLowerCase());
+        !searchQuery ||
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.heroText?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus = selectedStatus === 'All' || inv.status === selectedStatus;
-      const matchesProduct = selectedProduct === 'All' || inv.product.toLowerCase().includes(selectedProduct.toLowerCase());
-      const matchesCurrency = selectedCurrency === 'All' || inv.currency === selectedCurrency;
-      const matchesRm = selectedRm === 'All' || inv.relationshipManager === selectedRm;
+      const matchesStatus =
+        selectedStatus === 'All'
+          ? true
+          : selectedStatus === 'Active'
+          ? item.isActive === true
+          : item.isActive === false;
 
-      return matchesSearch && matchesStatus && matchesProduct && matchesCurrency && matchesRm;
+      const matchesProduct =
+        selectedProduct === 'All' || item.code === selectedProduct;
+
+      const matchesRisk =
+        selectedRisk === 'All' || item.riskLevel === selectedRisk;
+
+      return matchesSearch && matchesStatus && matchesProduct && matchesRisk;
     }).sort((a, b) => {
-      if (sortBy === 'principal-desc') return b.principal - a.principal;
-      if (sortBy === 'principal-asc') return a.principal - b.principal;
-      if (sortBy === 'value-desc') return b.currentValue - a.currentValue;
-      if (sortBy === 'rate-desc') return b.interestRate - a.interestRate;
-      if (sortBy === 'name-asc') return a.customerName.localeCompare(b.customerName);
+      if (sortBy === 'order-asc') return (a.displayOrder ?? 0) - (b.displayOrder ?? 0);
+      if (sortBy === 'order-desc') return (b.displayOrder ?? 0) - (a.displayOrder ?? 0);
+      if (sortBy === 'title-asc') return (a.title ?? '').localeCompare(b.title ?? '');
       return 0;
     });
-  }, [investments, searchQuery, selectedStatus, selectedProduct, selectedCurrency, selectedRm, sortBy]);
+  }, [apiItems, searchQuery, selectedStatus, selectedProduct, selectedRisk, sortBy]);
 
-  // Handle Create Investment via real API
-  const handleCreateInvestment = async () => {
-    if (!newTitle.trim()) {
-      toast.error('Please enter investment title.', 'Validation Error');
-      return;
-    }
+  function validateForm() {
+    const errors: Record<string, string> = {};
+    if (!form.code.trim()) errors.code = 'Investment type is required';
+    if (!form.title.trim()) errors.title = 'Title is required';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  function openCreate() {
+    setForm({
+      ...emptyForm(),
+      displayOrder: maxOrder + 1,
+    });
+    setSteps(['Choose an investment product that matches your financial goals.']);
+    setCoverImage(null);
+    setFormErrors({});
+    setSelectedItem(null);
+    setDrawerMode('create');
+  }
+
+  function openEdit(item: InvestmentEducation) {
+    const rawSteps = item.howItWorksText
+      ? item.howItWorksText.split('\n').map((s) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean)
+      : [];
+
+    setForm({
+      code: item.code ?? 'mutual_funds',
+      title: item.title ?? '',
+      heroText: item.heroText ?? '',
+      detailsText: item.detailsText ?? '',
+      howItWorksText: item.howItWorksText ?? '',
+      riskLevel: item.riskLevel ?? 'Low',
+      capitalGuaranteed: item.capitalGuaranteed ?? false,
+      returnsGuaranteed: item.returnsGuaranteed ?? false,
+      withdrawalRestrictions: item.withdrawalRestrictions ?? false,
+      isActive: item.isActive ?? true,
+      displayOrder: item.displayOrder ?? 0,
+      category: 'Fixed Income',
+      tags: 'Intermediate',
+    });
+    setSteps(rawSteps.length > 0 ? rawSteps : ['Choose an investment product that matches your financial goals.']);
+    setCoverImage(null);
+    setFormErrors({});
+    setSelectedItem(item);
+    setDrawerMode('edit');
+  }
+
+  // Handle Create/Edit Investment via real API
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
     try {
-      const payload: CreateInvestmentEducationRequest = {
-        code: newCode,
-        title: newTitle.trim(),
-        heroText: newHeroText.trim(),
-        riskLevel: newRiskLevel,
-        capitalGuaranteed: newCapitalGuaranteed,
-        returnsGuaranteed: newReturnsGuaranteed,
-        withdrawalRestrictions: newWithdrawalRestrictions,
-        isActive: true,
-        displayOrder: maxOrder + 1,
+      const formattedSteps = steps
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s, idx) => `${idx + 1}. ${s}`)
+        .join('\n');
+
+      const { category, tags, ...apiPayload } = form;
+      const formattedPayload: CreateInvestmentEducationRequest = {
+        ...apiPayload,
+        code: form.code.trim().toLowerCase().replace(/\s+/g, '_'),
+        title: form.title.trim(),
+        heroText: form.heroText?.trim() || '',
+        detailsText: form.detailsText?.trim() || '',
+        howItWorksText: formattedSteps || form.howItWorksText?.trim() || '',
+        displayOrder: drawerMode === 'create' ? maxOrder + 1 : form.displayOrder,
       };
-      await createItem(payload).unwrap();
-      toast.success(`Investment product "${newTitle}" created successfully.`, 'Created');
-      setCreateModalOpen(false);
-      setNewTitle('');
-      setNewHeroText('');
+
+      if (drawerMode === 'create') {
+        await createItem(formattedPayload).unwrap();
+        toast.success(`Investment product "${form.title}" created successfully.`, 'Created');
+      } else if (selectedItem) {
+        await updateItem({ id: selectedItem.id, body: formattedPayload }).unwrap();
+        toast.success(`Investment product updated successfully.`, 'Updated');
+      }
+      setDrawerMode(null);
     } catch (err: any) {
-      toast.error(err?.data?.statusMessage || 'Failed to create investment product.', 'Error');
+      toast.error(err?.data?.statusMessage || 'Operation failed.', 'Error');
     }
   };
 
@@ -280,36 +299,24 @@ function InvestmentManagementContent() {
   };
 
   // Row Action Dropdown Menu
-  const getActionMenu = (record: InvestmentRecord): MenuProps => ({
+  const getActionMenu = (item: InvestmentEducation): MenuProps => ({
     items: [
       {
         key: 'view-inv',
         label: (
-          <Link href={`/dashboard/retail/investments/${record.apiItem?.id || record.id}`} className="flex items-center gap-2 text-xs font-semibold text-[#961A1C]">
-            <Eye size={14} /> View Investment
+          <Link href={`/dashboard/retail/investments/${item.id}`} className="flex items-center gap-2 text-xs font-semibold text-[#961A1C]">
+            <Eye size={14} /> View Details
           </Link>
         ),
       },
       {
-        key: 'redeem',
-        label: (
-          <span className="flex items-center gap-2 text-xs font-medium text-emerald-600">
-            <RotateCcw size={14} /> Redeem Investment
-          </span>
-        ),
-        onClick: () => {
-          setSelectedInvestment(record);
-          setRedeemModalOpen(true);
-        },
-      },
-      {
-        key: 'statement',
+        key: 'edit-inv',
         label: (
           <span className="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-            <Download size={14} /> Export Statement
+            <Pencil size={14} /> Edit Product
           </span>
         ),
-        onClick: () => toast.info(`Downloading statement for ${record.id}...`, 'Export'),
+        onClick: () => openEdit(item),
       },
       { type: 'divider' },
       {
@@ -319,13 +326,7 @@ function InvestmentManagementContent() {
             <Trash2 size={14} /> Delete Product
           </span>
         ),
-        onClick: () => {
-          if (record.apiItem) {
-            setDeleteTarget(record.apiItem);
-          } else {
-            toast.info('Item cannot be deleted directly.', 'Info');
-          }
-        },
+        onClick: () => setDeleteTarget(item),
       },
     ],
   });
@@ -359,7 +360,8 @@ function InvestmentManagementContent() {
             <Download size={14} /> Export
           </button>
           <button
-            onClick={() => setCreateModalOpen(true)}
+            id="create-investment-btn"
+            onClick={openCreate}
             className="px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
             <Plus size={15} /> Create Investment
@@ -374,15 +376,15 @@ function InvestmentManagementContent() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-[#961A1C] rounded-r-md" />
           <div className="flex items-center justify-between pl-2">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Portfolio Value (AUM)</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Listed Products</span>
             <Tag color="volcano" className="!bg-[#961A1C]/10 !text-[#961A1C] !border-none font-semibold text-[10px] m-0">AUM</Tag>
           </div>
           <div className="my-2.5 pl-2">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">₦13.57B</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">{isFetching ? '—' : apiItems.length}</h2>
           </div>
           <div className="flex items-center justify-between text-xs text-gray-500 pl-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
-            <span>Capital: <strong className="text-gray-800 dark:text-gray-200">₦12.45B</strong></span>
-            <span className="text-[11px]">45,210 Accounts</span>
+            <span>Live Products: <strong className="text-gray-800 dark:text-gray-200">{activeCount} Active</strong></span>
+            <span className="text-[11px]">Retail Catalog</span>
           </div>
         </div>
 
@@ -568,7 +570,7 @@ function InvestmentManagementContent() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
             <input
               type="text"
-              placeholder="Search by Investment ID, Title, Product Type..."
+              placeholder="Search by Title, Product Type, or Headline..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
@@ -584,11 +586,9 @@ function InvestmentManagementContent() {
               size="small"
               className="w-44 text-xs"
               options={[
-                { value: 'principal-desc', label: 'Highest Principal' },
-                { value: 'principal-asc', label: 'Lowest Principal' },
-                { value: 'value-desc', label: 'Highest Current Value' },
-                { value: 'rate-desc', label: 'Highest Interest Rate' },
-                { value: 'name-asc', label: 'Customer Name (A-Z)' },
+                { value: 'order-asc', label: 'Display Order (1-9)' },
+                { value: 'order-desc', label: 'Display Order (9-1)' },
+                { value: 'title-asc', label: 'Title (A-Z)' },
               ]}
             />
           </div>
@@ -601,56 +601,48 @@ function InvestmentManagementContent() {
           </span>
 
           <Select
-            value={selectedStatus}
-            onChange={setSelectedStatus}
-            size="small"
-            className="w-36"
-            options={[
-              { value: 'All', label: 'All Statuses' },
-              { value: 'Active', label: 'Active' },
-              { value: 'Pending Approval', label: 'Pending Approval' },
-              { value: 'Matured', label: 'Matured' },
-              { value: 'Redeemed', label: 'Redeemed' },
-              { value: 'Cancelled', label: 'Cancelled' },
-            ]}
-          />
-
-          <Select
             value={selectedProduct}
             onChange={setSelectedProduct}
             size="small"
             className="w-36"
             options={[
               { value: 'All', label: 'All Products' },
-              { value: 'Fixed Deposit', label: 'Fixed Deposit' },
-              { value: 'Treasury Bills', label: 'Treasury Bills' },
-              { value: 'Mutual Fund', label: 'Mutual Fund' },
-              { value: 'Bond', label: 'Bond' },
-              { value: 'Dollar Investment', label: 'Dollar Investment' },
+              ...INVESTMENT_TYPES,
             ]}
           />
 
           <Select
-            value={selectedCurrency}
-            onChange={setSelectedCurrency}
+            value={selectedRisk}
+            onChange={setSelectedRisk}
             size="small"
-            className="w-28"
+            className="w-36"
             options={[
-              { value: 'All', label: 'All Currencies' },
-              { value: 'NGN', label: 'NGN (₦)' },
-              { value: 'USD', label: 'USD ($)' },
-              { value: 'GBP', label: 'GBP (£)' },
-              { value: 'EUR', label: 'EUR (€)' },
+              { value: 'All', label: 'All Risk Levels' },
+              { value: 'Low', label: 'Low Risk' },
+              { value: 'Medium', label: 'Medium Risk' },
+              { value: 'High', label: 'High Risk' },
+              { value: 'Very High', label: 'Very High Risk' },
             ]}
           />
 
-          {(selectedStatus !== 'All' || selectedProduct !== 'All' || selectedCurrency !== 'All' || searchQuery !== '') && (
+          <Select
+            value={selectedStatus}
+            onChange={setSelectedStatus}
+            size="small"
+            className="w-32"
+            options={[
+              { value: 'All', label: 'All Statuses' },
+              { value: 'Active', label: 'Active Only' },
+              { value: 'Inactive', label: 'Inactive Only' },
+            ]}
+          />
+
+          {(selectedStatus !== 'All' || selectedProduct !== 'All' || selectedRisk !== 'All' || searchQuery !== '') && (
             <button
               onClick={() => {
                 setSelectedStatus('All');
                 setSelectedProduct('All');
-                setSelectedCurrency('All');
-                setSelectedRm('All');
+                setSelectedRisk('All');
                 setSearchQuery('');
               }}
               className="text-xs text-[#961A1C] hover:underline font-semibold ml-auto cursor-pointer"
@@ -660,24 +652,24 @@ function InvestmentManagementContent() {
           )}
         </div>
 
-        {/* DATA TABLE CONTAINER (HIDDEN SCROLLBAR) */}
+        {/* DATA TABLE CONTAINER (REAL BACKEND DATA) */}
         <div className="overflow-x-auto hide-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {isFetching ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-400">
               <Loader2 size={24} className="animate-spin text-[#961A1C]" />
-              <span className="text-xs font-medium">Loading real API investments...</span>
+              <span className="text-xs font-medium">Loading investment offerings from API...</span>
             </div>
-          ) : filteredInvestments.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
                 <Search size={22} />
               </div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">No investments match your filters</h3>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">No investment offerings match your filters</h3>
               <Button
                 onClick={() => {
                   setSelectedStatus('All');
                   setSelectedProduct('All');
-                  setSelectedCurrency('All');
+                  setSelectedRisk('All');
                   setSearchQuery('');
                 }}
                 className="text-xs font-semibold text-[#961A1C]"
@@ -689,149 +681,445 @@ function InvestmentManagementContent() {
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">Investment ID</th>
-                  <th className="px-4 py-3">Customer / Title</th>
-                  <th className="px-4 py-3">Product</th>
-                  <th className="px-4 py-3">Principal</th>
-                  <th className="px-4 py-3">Interest Rate</th>
-                  <th className="px-4 py-3">Current Value</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Operational State</th>
-                  <th className="px-4 py-3">Maturity Date</th>
+                  <th className="px-4 py-3">S/N</th>
+                  <th className="px-4 py-3">Title / Description</th>
+                  <th className="px-4 py-3">Product Type</th>
+                  <th className="px-4 py-3">Risk Level</th>
+                  <th className="px-4 py-3 text-center">Capital</th>
+                  <th className="px-4 py-3 text-center">Returns</th>
+                  <th className="px-4 py-3 text-center">Withdrawal</th>
+                  <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {filteredInvestments.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono font-bold text-[#961A1C] whitespace-nowrap">
-                      {record.id}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div>
-                        <Link href={`/dashboard/retail/investments/${record.apiItem?.id || record.id}`} className="font-semibold text-gray-900 dark:text-white hover:text-[#961A1C] transition-colors">
-                          {record.customerName}
-                        </Link>
-                        <p className="text-[11px] text-gray-400">{record.phone}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="font-semibold text-gray-800 dark:text-gray-200">{record.product}</span>
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                      {record.currency === 'USD' ? '$' : '₦'}{record.principal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200/50">
-                        {record.interestRate}% p.a.
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                      {record.currency === 'USD' ? '$' : '₦'}{record.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <InvestmentStatusBadge status={record.status} />
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <InvestmentStateBadge state={record.state} />
-                    </td>
-                    <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap">
-                      {record.maturityDate}
-                    </td>
-                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                      <Dropdown menu={getActionMenu(record)} trigger={['click']} placement="bottomRight">
-                        <Button type="text" size="small" className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical size={16} />
-                        </Button>
-                      </Dropdown>
-                    </td>
-                  </tr>
-                ))}
+                {filteredItems.map((item, idx) => {
+                  const risk = (item.riskLevel || 'Low') as RiskLevel;
+                  const meta = RISK_META[risk] ?? RISK_META['Low'];
+                  return (
+                    <tr key={item.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
+                      {/* S/N */}
+                      <td className="px-4 py-3.5 font-mono font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                        #{item.displayOrder || idx + 1}
+                      </td>
+
+                      {/* Title & Description Stack */}
+                      <td className="px-4 py-3.5 min-w-[220px]">
+                        <div>
+                          <Link
+                            href={`/dashboard/retail/investments/${item.id}`}
+                            className="font-bold text-sm text-gray-900 dark:text-white hover:text-[#961A1C] transition-colors block"
+                          >
+                            {item.title}
+                          </Link>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate max-w-xs mt-0.5">
+                            {item.heroText || item.detailsText || 'No summary description provided'}
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* Product Type */}
+                      <td className="px-4 py-3.5 whitespace-nowrap font-semibold text-gray-800 dark:text-gray-200">
+                        {formatModuleCode(item.code)}
+                      </td>
+
+                      {/* Risk Level */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${meta.bg} ${meta.color}`}>
+                          <Wifi size={11} />
+                          {item.riskLevel || 'Low'}
+                        </span>
+                      </td>
+
+                      {/* Capital */}
+                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                        {item.capitalGuaranteed ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <Check size={12} className="stroke-[3]" /> Yes
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-500 dark:text-red-400">
+                            <X size={12} className="stroke-[2.5]" /> No
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Returns */}
+                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                        {item.returnsGuaranteed ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <Check size={12} className="stroke-[3]" /> Yes
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-500 dark:text-red-400">
+                            <X size={12} className="stroke-[2.5]" /> No
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Withdrawal */}
+                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                        {item.withdrawalRestrictions ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                            <X size={12} className="stroke-[2.5]" /> Yes
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <Check size={12} className="stroke-[3]" /> No
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          item.isActive
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200'
+                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200'
+                        }`}>
+                          {item.isActive ? <><Check size={10} /> Active</> : 'Inactive'}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        <Dropdown menu={getActionMenu(item)} trigger={['click']} placement="bottomRight">
+                          <Button type="text" size="small" className="text-gray-400 hover:text-gray-600">
+                            <MoreVertical size={16} />
+                          </Button>
+                        </Dropdown>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
         </div>
       </div>
 
-      {/* --- CREATE INVESTMENT MODAL WITH REAL API --- */}
-      <Modal
+      {/* ── Slide-Out Uploading Drawer (Ant Design Drawer) ───────────────── */}
+      <Drawer
+        open={Boolean(drawerMode)}
+        onClose={() => setDrawerMode(null)}
+        width={560}
+        destroyOnClose
+        maskClosable={false}
+        className="dark:bg-gray-900"
         title={
-          <div className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
-            <Plus size={18} className="text-[#961A1C]" />
-            Create Customer Investment
+          <div className="flex items-center justify-between text-gray-900 dark:text-white">
+            <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+              {drawerMode === 'create' ? 'Add Investment Product' : 'Edit Investment Product'}
+            </h3>
           </div>
         }
-        open={createModalOpen}
-        onCancel={() => setCreateModalOpen(false)}
-        onOk={handleCreateInvestment}
-        confirmLoading={isCreating}
-        okText="Create Investment"
-        okButtonProps={{ style: { backgroundColor: '#961A1C', borderColor: '#961A1C' } }}
-        width={500}
-        centered
       >
-        <div className="py-2 space-y-4 text-xs">
-          <div>
-            <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-              Investment Product Title <span className="text-red-500">*</span>
-            </label>
-            <Input
-              placeholder="e.g. Fixed Deposit High Yield Portfolio"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-            />
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+
+          <div className="flex-1 overflow-y-auto space-y-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            
+            {/* Top Cover Media Preview Dropzone (UI Preview Only) */}
+            <div className="relative w-full h-48 bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex flex-col items-center justify-center group">
+              {coverImage ? (
+                <>
+                  <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover opacity-85" />
+                  <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
+                      <Play size={20} className="ml-1 fill-white" />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage(null)}
+                    className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 text-white hover:bg-black transition cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </>
+              ) : (
+                <label className="flex flex-col items-center justify-center cursor-pointer w-full h-full p-4 hover:bg-gray-800/60 transition text-gray-400">
+                  <div className="w-12 h-12 rounded-full bg-red-600/20 text-[#961A1C] flex items-center justify-center mb-2">
+                    <Play size={20} className="ml-1 fill-[#961A1C]" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-200">
+                    <Upload size={14} /> Click or drop cover media thumbnail
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">App thumbnail preview placeholder (UI Only)</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setCoverImage(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* Tag Level Badge & Select */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
+                {form.tags || 'Intermediate'}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-medium">Tag Level:</span>
+                <Select
+                  value={form.tags || 'Intermediate'}
+                  onChange={(val) => setForm({ ...form, tags: val })}
+                  options={TAG_OPTIONS}
+                  className="w-36 text-xs"
+                  size="small"
+                />
+              </div>
+            </div>
+
+            {/* Title Field (Large heading style like on app) */}
+            <div>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Product Title (e.g. Fixed Deposit Portfolio)"
+                className={`w-full text-xl sm:text-2xl font-bold bg-transparent text-gray-900 dark:text-white border-b-2 border-dashed focus:border-solid border-gray-300 dark:border-gray-700 py-1.5 focus:border-[#961A1C] outline-none transition placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
+                  formErrors.title ? 'border-red-500' : ''
+                }`}
+              />
+              {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
+              <p className="text-[11px] text-gray-400 mt-1">Retail investor mobile app header</p>
+            </div>
+
+            {/* Education / Investment Type Dropdown & Category Type Dropdown */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Education Type *
+                </label>
+                <Select
+                  value={form.code || 'mutual_funds'}
+                  onChange={(val) => setForm({ ...form, code: val })}
+                  options={INVESTMENT_TYPES}
+                  className="w-full"
+                />
+                {formErrors.code && <p className="text-xs text-red-500 mt-1">{formErrors.code}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Category Type
+                </label>
+                <Select
+                  value={form.category || CATEGORY_OPTIONS[0]}
+                  onChange={(val) => setForm({ ...form, category: val })}
+                  options={CATEGORY_OPTIONS.map((c) => ({ value: c, label: c }))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* Hero Headline & Full Details Description */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Hero Headline
+                </label>
+                <textarea
+                  rows={2}
+                  value={form.heroText}
+                  onChange={(e) => setForm({ ...form, heroText: e.target.value })}
+                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                  placeholder="Investment product summary for investors..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Full Details & Description
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.detailsText}
+                  onChange={(e) => setForm({ ...form, detailsText: e.target.value })}
+                  className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
+                  placeholder="Full investment terms, security backing, and strategy..."
+                />
+              </div>
+            </div>
+
+            {/* How It Works Section - Connected Steps */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                  How It Works (Steps)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSteps([...steps, ''])}
+                  className="flex items-center gap-1 text-xs text-[#961A1C] hover:underline font-semibold cursor-pointer"
+                >
+                  <Plus size={13} /> Add Step
+                </button>
+              </div>
+
+              <div className="relative pl-6 space-y-4">
+                {steps.length > 1 && (
+                  <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                )}
+
+                {steps.map((stepText, idx) => (
+                  <div key={idx} className="relative flex items-center gap-3 group">
+                    <div className="absolute -left-6 z-10 w-6 h-6 rounded-full bg-[#961A1C] text-white text-xs font-bold flex items-center justify-center shadow-xs">
+                      {idx + 1}
+                    </div>
+
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={stepText}
+                        onChange={(e) => {
+                          const updated = [...steps];
+                          updated[idx] = e.target.value;
+                          setSteps(updated);
+                        }}
+                        placeholder={`Step ${idx + 1} description...`}
+                        className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+                      />
+                      {steps.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setSteps(steps.filter((_, i) => i !== idx))}
+                          className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Risk Level with Wifi icon */}
+            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <Wifi size={16} className="text-[#961A1C]" />
+                <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                  Risk Level
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(['Low', 'Medium', 'High', 'Very High'] as RiskLevel[]).map((r) => {
+                  const active = form.riskLevel === r;
+                  const wifiColors: Record<RiskLevel, string> = {
+                    Low: 'text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800',
+                    Medium: 'text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800',
+                    High: 'text-orange-700 bg-orange-50 border-orange-300 dark:bg-orange-950/40 dark:border-orange-800',
+                    'Very High': 'text-red-700 bg-red-50 border-red-300 dark:bg-red-950/40 dark:border-red-800',
+                  };
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setForm({ ...form, riskLevel: r })}
+                      className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                        active
+                          ? `${wifiColors[r]} ring-2 ring-current shadow-xs`
+                          : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <Wifi size={13} className={active ? 'animate-pulse' : 'opacity-60'} />
+                      <span>{r}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Domain Switches for Capital, Returns & Withdrawal */}
+            <div className="space-y-3">
+              {/* Capital */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="pr-3">
+                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                    Would the user need capital to understand this lecture?
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Capital Guaranteed</p>
+                </div>
+                <Switch
+                  checked={form.capitalGuaranteed}
+                  onChange={(checked) => setForm({ ...form, capitalGuaranteed: checked })}
+                />
+              </div>
+
+              {/* Returns */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="pr-3">
+                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                    The customer would get ROI after taking this lecture
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Returns Guaranteed</p>
+                </div>
+                <Switch
+                  checked={form.returnsGuaranteed}
+                  onChange={(checked) => setForm({ ...form, returnsGuaranteed: checked })}
+                />
+              </div>
+
+              {/* Withdrawal */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="pr-3">
+                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                    Would the user have restrictions on withdrawal?
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Withdrawal Restrictions</p>
+                </div>
+                <Switch
+                  checked={form.withdrawalRestrictions}
+                  onChange={(checked) => setForm({ ...form, withdrawalRestrictions: checked })}
+                />
+              </div>
+            </div>
+
+            {/* Active Status Section */}
+            <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
+                    Active Status
+                  </span>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
+                    Retail users can now have access to this investment product
+                  </p>
+                </div>
+                <Switch
+                  checked={form.isActive}
+                  onChange={(checked) => setForm({ ...form, isActive: checked })}
+                />
+              </div>
+            </div>
+
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Product Offering Type
-              </label>
-              <Select
-                value={newCode}
-                onChange={setNewCode}
-                className="w-full text-xs"
-                options={[
-                  { value: 'mutual_funds', label: 'Mutual Funds' },
-                  { value: 'investment_banking', label: 'Investment Banking' },
-                  { value: 'treasury_bills', label: 'Treasury Bills' },
-                  { value: 'fixed_deposit', label: 'Fixed Deposit' },
-                  { value: 'bonds', label: 'Bonds' },
-                  { value: 'eurobonds', label: 'Eurobonds' },
-                ]}
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                Risk Level
-              </label>
-              <Select
-                value={newRiskLevel}
-                onChange={setNewRiskLevel}
-                className="w-full text-xs"
-                options={[
-                  { value: 'Low', label: 'Low Risk' },
-                  { value: 'Medium', label: 'Medium Risk' },
-                  { value: 'High', label: 'High Risk' },
-                  { value: 'Very High', label: 'Very High Risk' },
-                ]}
-              />
-            </div>
+          {/* Sticky Bottom Action Button */}
+          <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-4 pb-1 mt-4">
+            <button
+              type="submit"
+              disabled={isCreating || isUpdating}
+              className="w-full py-3.5 px-4 bg-[#961A1C] hover:bg-[#7a1517] text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              {isCreating || isUpdating ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Check size={16} />
+              )}
+              <span>{drawerMode === 'create' ? 'Create Investment Product' : 'Save Changes'}</span>
+            </button>
           </div>
-
-          <div>
-            <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
-              Headline Summary
-            </label>
-            <Input.TextArea
-              rows={2}
-              placeholder="Brief overview of investment returns..."
-              value={newHeroText}
-              onChange={(e) => setNewHeroText(e.target.value)}
-            />
-          </div>
-        </div>
-      </Modal>
+        </form>
+      </Drawer>
 
       {/* --- EXPORT MODAL --- */}
       <Modal
@@ -852,34 +1140,8 @@ function InvestmentManagementContent() {
             Export filtered customer investment portfolio records into spreadsheet format.
           </p>
           <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1 font-mono text-[11px]">
-            <div>Total Records: <strong>{filteredInvestments.length} Investments</strong></div>
+            <div>Total Records: <strong>{filteredItems.length} Investments</strong></div>
             <div>Format: <strong>Excel (.xlsx) / CSV</strong></div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* --- REDEEM MODAL --- */}
-      <Modal
-        title={`Redeem Investment: ${selectedInvestment?.id}`}
-        open={redeemModalOpen}
-        onCancel={() => setRedeemModalOpen(false)}
-        onOk={() => {
-          message.success(`Investment ${selectedInvestment?.id} redeemed successfully to customer bank account.`);
-          setRedeemModalOpen(false);
-        }}
-        okText="Confirm Payout"
-        okButtonProps={{ style: { backgroundColor: '#10B981', borderColor: '#10B981' } }}
-        width={440}
-        centered
-      >
-        <div className="py-2 space-y-3 text-xs">
-          <p className="text-gray-600 dark:text-gray-300">
-            You are initiating full redemption payout for <strong>{selectedInvestment?.customerName}</strong>.
-          </p>
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200/60 space-y-1">
-            <div>Principal: <strong>₦{selectedInvestment?.principal.toLocaleString()}</strong></div>
-            <div>Current Value: <strong>₦{selectedInvestment?.currentValue.toLocaleString()}</strong></div>
-            <div>Payout Account: <strong>{selectedInvestment?.accountNumber} (Alpha 10)</strong></div>
           </div>
         </div>
       </Modal>
