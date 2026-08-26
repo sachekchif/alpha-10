@@ -255,242 +255,248 @@ function InvestmentDetailContent() {
           <p className="text-sm font-medium">Failed to load investment details.</p>
           <button onClick={() => refetch()} className="text-xs text-[#961A1C] hover:underline font-semibold">Try again</button>
         </div>
-      ) : isMutualFundsModule ? (
-        /* ── IF MUTUAL FUNDS: RENDER FULL MUTUAL FUNDS MANAGEMENT SYSTEM ───────── */
-        <MutualFundsManagementSuite />
       ) : (
-        /* ── STANDARD INVESTMENT PRODUCT MODULE DETAILS ──────────────────────── */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+        /* ── INVESTMENT PRODUCT MODULE DETAILS (SHOWN FOR ALL PRODUCTS) ─── */
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
 
-          {/* ── 70% Left Main Content Area (lg:col-span-8) ───────────── */}
-          <div className="lg:col-span-8 space-y-6">
+            {/* ── 70% Left Main Content Area (lg:col-span-8) ───────────── */}
+            <div className="lg:col-span-8 space-y-6">
 
-            {/* Level Badge & Risk Badge Bar */}
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
-                Intermediate
-              </span>
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
-                {meta.icon}
-                {item.riskLevel || 'Low'}
-              </span>
-            </div>
-
-            {/* Title Heading & Description Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 space-y-4 shadow-xs">
-              <div>
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                  Product Headline & Hero Summary
+              {/* Level Badge & Risk Badge Bar */}
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
+                  Intermediate
                 </span>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-snug">
-                  {item.title}
-                </h2>
-                {item.heroText && (
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 leading-relaxed bg-gray-50 dark:bg-gray-900/40 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800">
-                    {item.heroText}
-                  </p>
-                )}
-              </div>
-
-              {item.detailsText && (
-                <div>
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
-                    Comprehensive Investment Details
-                  </span>
-                  <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-2">
-                    {item.detailsText}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* How It Works Connected Steps */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 shadow-xs">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-                How It Works — Step-by-Step Investment Guide
-              </h3>
-
-              {parsedSteps.length > 0 ? (
-                <div className="relative pl-6 space-y-4">
-                  {parsedSteps.length > 1 && (
-                    <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700" />
-                  )}
-                  {parsedSteps.map((step, idx) => (
-                    <div key={idx} className="relative flex items-center gap-3">
-                      <div className="absolute -left-6 z-10 w-6 h-6 rounded-full bg-[#961A1C] text-white text-xs font-bold flex items-center justify-center shadow-xs">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1 p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
-                        {step.replace(/^\d+\.\s*/, '')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : item.howItWorksText ? (
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {item.howItWorksText}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400 italic">No step-by-step guide provided for this investment product yet.</p>
-              )}
-            </div>
-
-          </div>
-
-          {/* ── 30% Right Sidebar: Analytics & Conditions (lg:col-span-4) ─ */}
-          <div className="lg:col-span-4 space-y-6">
-
-            {/* Engagement & Viewer Analytics (Test Data Overlay) */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 space-y-4 shadow-xs relative overflow-hidden">
-              <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
-                TEST DATA
-              </div>
-
-              <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
-                <BarChart2 size={16} className="text-[#961A1C]" />
-                <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                  Product Engagement Analysis
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                    <Users size={13} />
-                    <span className="text-[10px] font-semibold uppercase">Total Viewers</span>
-                  </div>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">48,200</p>
-                  <p className="text-[10px] text-emerald-600 font-medium">+18% this month</p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                    <Award size={13} />
-                    <span className="text-[10px] font-semibold uppercase">Completion</span>
-                  </div>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">71.4%</p>
-                  <p className="text-[10px] text-emerald-600 font-medium">+4.2% completion</p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                    <Clock size={13} />
-                    <span className="text-[10px] font-semibold uppercase">Avg Watch Time</span>
-                  </div>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">4.2 min</p>
-                  <p className="text-[10px] text-gray-400 font-medium">Per session</p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-1.5 text-gray-400 mb-1">
-                    <Zap size={13} />
-                    <span className="text-[10px] font-semibold uppercase">Active Now</span>
-                  </div>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">1,420</p>
-                  <p className="text-[10px] text-emerald-600 font-medium">Viewing live</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Separate Cards for Capital, ROI, and Withdrawal */}
-            <div className="space-y-3">
-              {/* Capital Card */}
-              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Capital Requirement</span>
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    Would the customer need capital for this investment?
-                  </p>
-                </div>
-                <div>
-                  {item.capitalGuaranteed ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      <Check size={14} className="stroke-[3]" /> Capital Guaranteed
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
-                      <X size={14} className="stroke-[2.5]" /> No Capital Needed
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* ROI Card */}
-              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">ROI & Returns</span>
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    Will the customer receive guaranteed ROI for this investment?
-                  </p>
-                </div>
-                <div>
-                  {item.returnsGuaranteed ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      <Check size={14} className="stroke-[3]" /> ROI Guaranteed
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
-                      <X size={14} className="stroke-[2.5]" /> No ROI Guaranteed
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Withdrawal Restrictions Card */}
-              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Withdrawal Restrictions</span>
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                    Are there withdrawal restrictions on this investment?
-                  </p>
-                </div>
-                <div>
-                  {item.withdrawalRestrictions ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                      <X size={14} className="stroke-[2.5]" /> Restricted Withdrawal
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      <Check size={14} className="stroke-[3]" /> Flexible Withdrawal
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Risk Profile Card */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#961A1C] text-lg"><PiCellSignalHighFill /></span>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                    Risk Level Profile
-                  </span>
-                </div>
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
                   {meta.icon}
                   {item.riskLevel || 'Low'}
                 </span>
               </div>
+
+              {/* Title Heading & Description Card */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 space-y-4 shadow-xs">
+                <div>
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                    Product Headline & Hero Summary
+                  </span>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-snug">
+                    {item.title}
+                  </h2>
+                  {item.heroText && (
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 leading-relaxed bg-gray-50 dark:bg-gray-900/40 p-3.5 rounded-xl border border-gray-100 dark:border-gray-800">
+                      {item.heroText}
+                    </p>
+                  )}
+                </div>
+
+                {item.detailsText && (
+                  <div>
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
+                      Comprehensive Investment Details
+                    </span>
+                    <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-2">
+                      {item.detailsText}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* How It Works Connected Steps */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-6 shadow-xs">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                  How It Works — Step-by-Step Investment Guide
+                </h3>
+
+                {parsedSteps.length > 0 ? (
+                  <div className="relative pl-6 space-y-4">
+                    {parsedSteps.length > 1 && (
+                      <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 dark:bg-gray-700" />
+                    )}
+                    {parsedSteps.map((step, idx) => (
+                      <div key={idx} className="relative flex items-center gap-3">
+                        <div className="absolute -left-6 z-10 w-6 h-6 rounded-full bg-[#961A1C] text-white text-xs font-bold flex items-center justify-center shadow-xs">
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium">
+                          {step.replace(/^\d+\.\s*/, '')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : item.howItWorksText ? (
+                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {item.howItWorksText}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">No step-by-step guide provided for this investment product yet.</p>
+                )}
+              </div>
+
             </div>
 
-            {/* Active Status Card */}
-            <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 shadow-xs">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
-                    Active
-                  </span>
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
-                    Retail users can now access this investment offering
-                  </p>
+            {/* ── 30% Right Sidebar: Analytics & Conditions (lg:col-span-4) ─ */}
+            <div className="lg:col-span-4 space-y-6">
+
+              {/* Engagement & Viewer Analytics (Test Data Overlay) */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 space-y-4 shadow-xs relative overflow-hidden">
+                <div className="absolute top-2 right-2 bg-gray-900/90 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs z-10 tracking-wider">
+                  TEST DATA
                 </div>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+
+                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
+                  <BarChart2 size={16} className="text-[#961A1C]" />
+                  <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                    Product Engagement Analysis
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <Users size={13} />
+                      <span className="text-[10px] font-semibold uppercase">Total Viewers</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">48,200</p>
+                    <p className="text-[10px] text-emerald-600 font-medium">+18% this month</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <Award size={13} />
+                      <span className="text-[10px] font-semibold uppercase">Completion</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">71.4%</p>
+                    <p className="text-[10px] text-emerald-600 font-medium">+4.2% completion</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <Clock size={13} />
+                      <span className="text-[10px] font-semibold uppercase">Avg Watch Time</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">4.2 min</p>
+                    <p className="text-[10px] text-gray-400 font-medium">Per session</p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <Zap size={13} />
+                      <span className="text-[10px] font-semibold uppercase">Active Now</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">1,420</p>
+                    <p className="text-[10px] text-emerald-600 font-medium">Viewing live</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Separate Cards for Capital, ROI, and Withdrawal */}
+              <div className="space-y-3">
+                {/* Capital Card */}
+                <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Capital Requirement</span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Would the customer need capital for this investment?
+                    </p>
+                  </div>
+                  <div>
+                    {item.capitalGuaranteed ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <Check size={14} className="stroke-[3]" /> Capital Guaranteed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
+                        <X size={14} className="stroke-[2.5]" /> No Capital Needed
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ROI Card */}
+                <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">ROI & Returns</span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Will the customer receive guaranteed ROI for this investment?
+                    </p>
+                  </div>
+                  <div>
+                    {item.returnsGuaranteed ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <Check size={14} className="stroke-[3]" /> ROI Guaranteed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400">
+                        <X size={14} className="stroke-[2.5]" /> No ROI Guaranteed
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Withdrawal Restrictions Card */}
+                <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Withdrawal Restrictions</span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Are there withdrawal restrictions on this investment?
+                    </p>
+                  </div>
+                  <div>
+                    {item.withdrawalRestrictions ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                        <X size={14} className="stroke-[2.5]" /> Restricted Withdrawal
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <Check size={14} className="stroke-[3]" /> Flexible Withdrawal
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Risk Profile Card */}
+              <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#961A1C] text-lg"><PiCellSignalHighFill /></span>
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
+                      Risk Level Profile
+                    </span>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                    {meta.icon}
+                    {item.riskLevel || 'Low'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Active Status Card */}
+              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider block">
+                      Active
+                    </span>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
+                      Retail users can now access this investment offering
+                    </p>
+                  </div>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
+              </div>
+
             </div>
 
           </div>
 
+          {/* ── IF MUTUAL FUNDS MODULE: SHOW MUTUAL FUNDS MANAGEMENT TABLE SUITE BELOW ── */}
+          {isMutualFundsModule && (
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+              <MutualFundsManagementSuite />
+            </div>
+          )}
         </div>
       )}
 
