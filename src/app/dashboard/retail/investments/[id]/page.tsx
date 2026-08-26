@@ -6,8 +6,11 @@ import { Modal, Drawer, Select, Switch } from 'antd';
 import {
   ArrowLeft, BookOpen, Pencil, Trash2, X, Loader2, AlertCircle,
   Check, Shield, BarChart2, TrendingUp, Clock, Eye, Sparkles,
-  Wifi, Plus, Upload, Users, Award, Zap,
+  Plus, Upload, Users, Award, Zap,
 } from 'lucide-react';
+import { 
+  PiCellSignalMediumFill, PiCellSignalHighFill, PiCellSignalFullFill 
+} from 'react-icons/pi';
 import { RoleGuard } from '@/auth/components/RoleGuard';
 import {
   useGetInvestmentEducationQuery,
@@ -17,14 +20,25 @@ import {
 } from '@/auth/services/adminApi';
 import { useToast } from '@/auth/components/ToastContainer';
 
-const RISK_LEVELS = ['Low', 'Medium', 'High', 'Very High'] as const;
+const RISK_LEVELS = ['Low', 'Medium', 'High'] as const;
 type RiskLevel = typeof RISK_LEVELS[number];
 
-const RISK_META: Record<RiskLevel, { color: string; bg: string; dot: string }> = {
-  Low: { color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30', dot: 'bg-emerald-500' },
-  Medium: { color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30', dot: 'bg-amber-500' },
-  High: { color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30', dot: 'bg-orange-500' },
-  'Very High': { color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30', dot: 'bg-red-500' },
+const RISK_META: Record<RiskLevel, { color: string; bg: string; icon: React.ReactNode }> = {
+  Low: {
+    color: 'text-emerald-700 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200',
+    icon: <PiCellSignalMediumFill className="text-emerald-600 text-sm" />,
+  },
+  Medium: {
+    color: 'text-amber-700 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200',
+    icon: <PiCellSignalHighFill className="text-amber-600 text-sm" />,
+  },
+  High: {
+    color: 'text-red-700 dark:text-red-400',
+    bg: 'bg-red-50 dark:bg-red-900/30 border border-red-200',
+    icon: <PiCellSignalFullFill className="text-red-600 text-sm" />,
+  },
 };
 
 const INVESTMENT_TYPES = [
@@ -86,7 +100,7 @@ function InvestmentDetailContent() {
       heroText: item.heroText ?? '',
       detailsText: item.detailsText ?? '',
       howItWorksText: item.howItWorksText ?? '',
-      riskLevel: item.riskLevel ?? 'Low',
+      riskLevel: (item.riskLevel as RiskLevel) ?? 'Low',
       capitalGuaranteed: item.capitalGuaranteed ?? false,
       returnsGuaranteed: item.returnsGuaranteed ?? false,
       withdrawalRestrictions: item.withdrawalRestrictions ?? false,
@@ -146,8 +160,8 @@ function InvestmentDetailContent() {
     }
   }
 
-  const risk = (item?.riskLevel || 'Low') as RiskLevel;
-  const meta = RISK_META[risk] ?? RISK_META['Low'];
+  const riskKey = (item?.riskLevel || 'Low') as RiskLevel;
+  const meta = RISK_META[riskKey] ?? RISK_META['Low'];
 
   const parsedSteps = item?.howItWorksText
     ? item.howItWorksText.split('\n').filter((s) => s.trim().length > 0)
@@ -217,13 +231,13 @@ function InvestmentDetailContent() {
           {/* ── 70% Left Main Content Area (lg:col-span-8) ───────────── */}
           <div className="lg:col-span-8 space-y-6">
 
-            {/* Level Badge & Risk Badge Bar (Video Section Removed) */}
+            {/* Level Badge & Risk Badge Bar */}
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
                 Intermediate
               </span>
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
-                <Wifi size={12} />
+                {meta.icon}
                 {item.riskLevel || 'Low'}
               </span>
             </div>
@@ -414,12 +428,13 @@ function InvestmentDetailContent() {
             <div className="p-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Wifi size={15} className="text-[#961A1C]" />
+                  <span className="text-[#961A1C] text-lg"><PiCellSignalHighFill /></span>
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
                     Risk Level Profile
                   </span>
                 </div>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                  {meta.icon}
                   {item.riskLevel || 'Low'}
                 </span>
               </div>
@@ -445,13 +460,13 @@ function InvestmentDetailContent() {
         </div>
       )}
 
-      {/* Edit Drawer (Ant Design Drawer) */}
+      {/* Edit Drawer (Ant Design Drawer: maskClosable=true) */}
       <Drawer
         open={Boolean(isEditing && form)}
         onClose={() => setIsEditing(false)}
         width={560}
         destroyOnClose
-        maskClosable={false}
+        maskClosable={true}
         className="dark:bg-gray-900"
         title={
           <div className="flex items-center justify-between text-gray-900 dark:text-white">
@@ -608,35 +623,30 @@ function InvestmentDetailContent() {
                 </div>
               </div>
 
-              {/* Risk Level with Wifi icon */}
+              {/* Risk Level Selection: 3 Levels (Low, Medium, High) */}
               <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center gap-2 mb-3">
-                  <Wifi size={16} className="text-[#961A1C]" />
+                  <span className="text-[#961A1C] text-lg"><PiCellSignalHighFill /></span>
                   <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
                     Risk Level Profile
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2.5">
                   {RISK_LEVELS.map((r) => {
                     const active = form.riskLevel === r;
-                    const wifiColors: Record<RiskLevel, string> = {
-                      Low: 'text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800',
-                      Medium: 'text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800',
-                      High: 'text-orange-700 bg-orange-50 border-orange-300 dark:bg-orange-950/40 dark:border-orange-800',
-                      'Very High': 'text-red-700 bg-red-50 border-red-300 dark:bg-red-950/40 dark:border-red-800',
-                    };
+                    const meta = RISK_META[r];
                     return (
                       <button
                         key={r}
                         type="button"
                         onClick={() => setForm({ ...form, riskLevel: r })}
-                        className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                           active
-                            ? `${wifiColors[r]} ring-2 ring-current shadow-xs`
+                            ? `${meta.bg} ${meta.color} ring-2 ring-current shadow-xs`
                             : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300'
                         }`}
                       >
-                        <Wifi size={13} className={active ? 'animate-pulse' : 'opacity-60'} />
+                        {meta.icon}
                         <span>{r}</span>
                       </button>
                     );

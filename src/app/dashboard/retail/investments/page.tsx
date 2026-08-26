@@ -3,15 +3,18 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { 
-  Select, Modal, Drawer, Input, Tag, Button, Dropdown, MenuProps, message, Switch 
+  Select, Modal, Drawer, Tag, Button, Dropdown, MenuProps, message, Switch, Pagination 
 } from 'antd';
 import { 
   TrendingUp, BarChart3, PieChart as PieChartIcon, Activity, Search, Filter, 
   MoreVertical, Clock, CheckCircle2, XCircle, Download, Calendar, ChevronRight,
   Plus, ArrowUpRight, ArrowDownRight, RefreshCw, DollarSign, Shield, FileText,
   User, Award, Eye, FileSpreadsheet, RotateCcw, AlertTriangle, Layers, Building2,
-  Lock, Unlock, ChevronDown, Check, UserCheck, ShieldAlert, Loader2, Trash2, Pencil, Wifi, X, Play, Upload
+  Lock, Unlock, ChevronDown, Check, UserCheck, ShieldAlert, Loader2, Trash2, Pencil, X, Play, Upload
 } from 'lucide-react';
+import { 
+  PiCellSignalMediumFill, PiCellSignalHighFill, PiCellSignalFullFill 
+} from 'react-icons/pi';
 import { 
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, Cell, Tooltip as RechartsTooltip 
 } from 'recharts';
@@ -27,13 +30,24 @@ import {
 import { useToast } from '@/auth/components/ToastContainer';
 
 // --- TYPES ---
-export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Very High';
+export type RiskLevel = 'Low' | 'Medium' | 'High';
 
-const RISK_META: Record<RiskLevel, { color: string; bg: string }> = {
-  Low: { color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200' },
-  Medium: { color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200' },
-  High: { color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/40 border-orange-200' },
-  'Very High': { color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/40 border-red-200' },
+const RISK_META: Record<RiskLevel, { color: string; bg: string; icon: React.ReactNode }> = {
+  Low: {
+    color: 'text-emerald-700 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200',
+    icon: <PiCellSignalMediumFill className="text-emerald-600 text-sm" />,
+  },
+  Medium: {
+    color: 'text-amber-700 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200',
+    icon: <PiCellSignalHighFill className="text-amber-600 text-sm" />,
+  },
+  High: {
+    color: 'text-red-700 dark:text-red-400',
+    bg: 'bg-red-50 dark:bg-red-950/40 border-red-200',
+    icon: <PiCellSignalFullFill className="text-red-600 text-sm" />,
+  },
 };
 
 const PRODUCT_COLORS: Record<string, string> = {
@@ -129,13 +143,15 @@ export default function InvestmentManagementPage() {
 function InvestmentManagementContent() {
   const toast = useToast();
 
-  // Filters & State
+  // Filters & Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<string>('All');
   const [selectedRisk, setSelectedRisk] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('order-asc');
   const [growthPeriod, setGrowthPeriod] = useState<'Daily' | 'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   // Modals & Drawers State
   const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | null>(null);
@@ -172,7 +188,7 @@ function InvestmentManagementContent() {
     return code.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
-  // Filtered & Sorted Investments
+  // Filtered Investments
   const filteredItems = useMemo(() => {
     return apiItems.filter((item) => {
       const matchesSearch = 
@@ -202,6 +218,12 @@ function InvestmentManagementContent() {
       return 0;
     });
   }, [apiItems, searchQuery, selectedStatus, selectedProduct, selectedRisk, sortBy]);
+
+  // Paginated Subset
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, currentPage, pageSize]);
 
   function validateForm() {
     const errors: Record<string, string> = {};
@@ -233,7 +255,7 @@ function InvestmentManagementContent() {
       heroText: item.heroText ?? '',
       detailsText: item.detailsText ?? '',
       howItWorksText: item.howItWorksText ?? '',
-      riskLevel: item.riskLevel ?? 'Low',
+      riskLevel: (item.riskLevel as RiskLevel) ?? 'Low',
       capitalGuaranteed: item.capitalGuaranteed ?? false,
       returnsGuaranteed: item.returnsGuaranteed ?? false,
       withdrawalRestrictions: item.withdrawalRestrictions ?? false,
@@ -334,7 +356,7 @@ function InvestmentManagementContent() {
       {/* 1. PAGE HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-medium text-gray-900 dark:text-white tracking-tight">
             Investment Management
           </h1>
           <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -584,7 +606,10 @@ function InvestmentManagementContent() {
               type="text"
               placeholder="Search by Title, Product Type, or Headline..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
             />
           </div>
@@ -614,7 +639,10 @@ function InvestmentManagementContent() {
 
           <Select
             value={selectedProduct}
-            onChange={setSelectedProduct}
+            onChange={(val) => {
+              setSelectedProduct(val);
+              setCurrentPage(1);
+            }}
             size="small"
             className="w-36"
             options={[
@@ -625,7 +653,10 @@ function InvestmentManagementContent() {
 
           <Select
             value={selectedRisk}
-            onChange={setSelectedRisk}
+            onChange={(val) => {
+              setSelectedRisk(val);
+              setCurrentPage(1);
+            }}
             size="small"
             className="w-36"
             options={[
@@ -633,13 +664,15 @@ function InvestmentManagementContent() {
               { value: 'Low', label: 'Low Risk' },
               { value: 'Medium', label: 'Medium Risk' },
               { value: 'High', label: 'High Risk' },
-              { value: 'Very High', label: 'Very High Risk' },
             ]}
           />
 
           <Select
             value={selectedStatus}
-            onChange={setSelectedStatus}
+            onChange={(val) => {
+              setSelectedStatus(val);
+              setCurrentPage(1);
+            }}
             size="small"
             className="w-32"
             options={[
@@ -656,6 +689,7 @@ function InvestmentManagementContent() {
                 setSelectedProduct('All');
                 setSelectedRisk('All');
                 setSearchQuery('');
+                setCurrentPage(1);
               }}
               className="text-xs text-[#961A1C] hover:underline font-semibold ml-auto cursor-pointer"
             >
@@ -683,6 +717,7 @@ function InvestmentManagementContent() {
                   setSelectedProduct('All');
                   setSelectedRisk('All');
                   setSearchQuery('');
+                  setCurrentPage(1);
                 }}
                 className="text-xs font-semibold text-[#961A1C]"
               >
@@ -705,14 +740,15 @@ function InvestmentManagementContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {filteredItems.map((item, idx) => {
-                  const risk = (item.riskLevel || 'Low') as RiskLevel;
-                  const meta = RISK_META[risk] ?? RISK_META['Low'];
+                {paginatedItems.map((item, idx) => {
+                  const riskKey = (item.riskLevel || 'Low') as RiskLevel;
+                  const meta = RISK_META[riskKey] ?? RISK_META['Low'];
+                  const overallIdx = (currentPage - 1) * pageSize + idx + 1;
                   return (
                     <tr key={item.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
                       {/* S/N */}
                       <td className="px-4 py-3.5 font-mono font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                        #{item.displayOrder || idx + 1}
+                        #{overallIdx}
                       </td>
 
                       {/* Title & Description Stack */}
@@ -735,10 +771,10 @@ function InvestmentManagementContent() {
                         {formatModuleCode(item.code)}
                       </td>
 
-                      {/* Risk Level */}
+                      {/* Risk Level (3 Risk Icons: PiCellSignalMediumFill, PiCellSignalHighFill, PiCellSignalFullFill) */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${meta.bg} ${meta.color}`}>
-                          <Wifi size={11} />
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${meta.bg} ${meta.color}`}>
+                          {meta.icon}
                           {item.riskLevel || 'Low'}
                         </span>
                       </td>
@@ -808,15 +844,60 @@ function InvestmentManagementContent() {
             </table>
           )}
         </div>
+
+        {/* ── PROPER TABLE PAGINATION BAR ───────────────────────────────── */}
+        {filteredItems.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/80 text-xs">
+            
+            {/* Range Counter & Items per Page selector */}
+            <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+              <span>
+                Showing <strong className="text-gray-900 dark:text-white font-bold">{(currentPage - 1) * pageSize + 1}</strong> to{' '}
+                <strong className="text-gray-900 dark:text-white font-bold">{Math.min(currentPage * pageSize, filteredItems.length)}</strong> of{' '}
+                <strong className="text-gray-900 dark:text-white font-bold">{filteredItems.length}</strong> investments
+              </span>
+
+              <div className="flex items-center gap-1.5 ml-2">
+                <span className="text-[11px]">Per page:</span>
+                <Select
+                  value={pageSize}
+                  onChange={(val) => {
+                    setPageSize(val);
+                    setCurrentPage(1);
+                  }}
+                  size="small"
+                  className="w-16 text-xs"
+                  options={[
+                    { value: 10, label: '10' },
+                    { value: 20, label: '20' },
+                    { value: 50, label: '50' },
+                  ]}
+                />
+              </div>
+            </div>
+
+            {/* Antd Pagination */}
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredItems.length}
+              onChange={(page) => setCurrentPage(page)}
+              showSizeChanger={false}
+              size="small"
+              className="text-xs"
+            />
+          </div>
+        )}
+
       </div>
 
-      {/* ── Slide-Out Uploading Drawer (Ant Design Drawer) ───────────────── */}
+      {/* ── Slide-Out Uploading Drawer (Ant Design Drawer: maskClosable=true) ───────────────── */}
       <Drawer
         open={Boolean(drawerMode)}
         onClose={() => setDrawerMode(null)}
         width={560}
         destroyOnClose
-        maskClosable={false}
+        maskClosable={true}
         className="dark:bg-gray-900"
         title={
           <div className="flex items-center justify-between text-gray-900 dark:text-white">
@@ -972,35 +1053,30 @@ function InvestmentManagementContent() {
               </div>
             </div>
 
-            {/* Risk Level with Wifi icon */}
+            {/* Risk Level Selection: 3 Levels (Low, Medium, High) with exact Pi icons */}
             <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-3">
-                <Wifi size={16} className="text-[#961A1C]" />
+                <span className="text-[#961A1C] text-lg"><PiCellSignalHighFill /></span>
                 <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
                   Risk Level Profile
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {(['Low', 'Medium', 'High', 'Very High'] as RiskLevel[]).map((r) => {
+              <div className="grid grid-cols-3 gap-2.5">
+                {(['Low', 'Medium', 'High'] as RiskLevel[]).map((r) => {
                   const active = form.riskLevel === r;
-                  const wifiColors: Record<RiskLevel, string> = {
-                    Low: 'text-emerald-700 bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800',
-                    Medium: 'text-amber-700 bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800',
-                    High: 'text-orange-700 bg-orange-50 border-orange-300 dark:bg-orange-950/40 dark:border-orange-800',
-                    'Very High': 'text-red-700 bg-red-50 border-red-300 dark:bg-red-950/40 dark:border-red-800',
-                  };
+                  const meta = RISK_META[r];
                   return (
                     <button
                       key={r}
                       type="button"
                       onClick={() => setForm({ ...form, riskLevel: r })}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                      className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                         active
-                          ? `${wifiColors[r]} ring-2 ring-current shadow-xs`
+                          ? `${meta.bg} ${meta.color} ring-2 ring-current shadow-xs`
                           : 'bg-white dark:bg-gray-800 text-gray-500 border-gray-200 dark:border-gray-700 hover:border-gray-300'
                       }`}
                     >
-                      <Wifi size={13} className={active ? 'animate-pulse' : 'opacity-60'} />
+                      {meta.icon}
                       <span>{r}</span>
                     </button>
                   );
