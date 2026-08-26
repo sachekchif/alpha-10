@@ -143,7 +143,6 @@ function InvestmentManagementContent() {
   const [form, setForm] = useState<CreateInvestmentEducationRequest & { category?: string; tags?: string }>(emptyForm());
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [steps, setSteps] = useState<string[]>(['Choose an investment product that matches your financial goals.']);
-  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<InvestmentEducation | null>(null);
 
@@ -218,7 +217,6 @@ function InvestmentManagementContent() {
       displayOrder: maxOrder + 1,
     });
     setSteps(['Choose an investment product that matches your financial goals.']);
-    setCoverImage(null);
     setFormErrors({});
     setSelectedItem(null);
     setDrawerMode('create');
@@ -245,7 +243,6 @@ function InvestmentManagementContent() {
       tags: 'Intermediate',
     });
     setSteps(rawSteps.length > 0 ? rawSteps : ['Choose an investment product that matches your financial goals.']);
-    setCoverImage(null);
     setFormErrors({});
     setSelectedItem(item);
     setDrawerMode('edit');
@@ -275,10 +272,10 @@ function InvestmentManagementContent() {
 
       if (drawerMode === 'create') {
         await createItem(formattedPayload).unwrap();
-        toast.success(`Investment product "${form.title}" created successfully.`, 'Created');
+        toast.success(`Investment "${form.title}" created successfully.`, 'Created');
       } else if (selectedItem) {
         await updateItem({ id: selectedItem.id, body: formattedPayload }).unwrap();
-        toast.success(`Investment product updated successfully.`, 'Updated');
+        toast.success(`Investment updated successfully.`, 'Updated');
       }
       setDrawerMode(null);
     } catch (err: any) {
@@ -291,7 +288,7 @@ function InvestmentManagementContent() {
     if (!deleteTarget) return;
     try {
       await deleteItem(deleteTarget.id).unwrap();
-      toast.success(`Investment product deleted successfully.`, 'Deleted');
+      toast.success(`Investment deleted successfully.`, 'Deleted');
       setDeleteTarget(null);
     } catch (err: any) {
       toast.error(err?.data?.statusMessage || 'Delete failed.', 'Error');
@@ -313,7 +310,7 @@ function InvestmentManagementContent() {
         key: 'edit-inv',
         label: (
           <span className="flex items-center gap-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-            <Pencil size={14} /> Edit Product
+            <Pencil size={14} /> Edit Investment
           </span>
         ),
         onClick: () => openEdit(item),
@@ -323,7 +320,7 @@ function InvestmentManagementContent() {
         key: 'delete-inv',
         label: (
           <span className="flex items-center gap-2 text-xs font-semibold text-red-600">
-            <Trash2 size={14} /> Delete Product
+            <Trash2 size={14} /> Delete Investment
           </span>
         ),
         onClick: () => setDeleteTarget(item),
@@ -364,7 +361,7 @@ function InvestmentManagementContent() {
             onClick={openCreate}
             className="px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
-            <Plus size={15} /> Create Investment
+            <Plus size={15} /> Add Investment
           </button>
         </div>
       </div>
@@ -809,7 +806,7 @@ function InvestmentManagementContent() {
         title={
           <div className="flex items-center justify-between text-gray-900 dark:text-white">
             <h3 className="text-md font-semibold text-gray-900 dark:text-white">
-              {drawerMode === 'create' ? 'Add Investment Product' : 'Edit Investment Product'}
+              {drawerMode === 'create' ? 'Add Investment' : 'Edit Investment'}
             </h3>
           </div>
         }
@@ -818,48 +815,6 @@ function InvestmentManagementContent() {
 
           <div className="flex-1 overflow-y-auto space-y-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             
-            {/* Top Cover Media Preview Dropzone (UI Preview Only) */}
-            <div className="relative w-full h-48 bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex flex-col items-center justify-center group">
-              {coverImage ? (
-                <>
-                  <img src={coverImage} alt="Cover Preview" className="w-full h-full object-cover opacity-85" />
-                  <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
-                      <Play size={20} className="ml-1 fill-white" />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCoverImage(null)}
-                    className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 text-white hover:bg-black transition cursor-pointer"
-                  >
-                    <X size={14} />
-                  </button>
-                </>
-              ) : (
-                <label className="flex flex-col items-center justify-center cursor-pointer w-full h-full p-4 hover:bg-gray-800/60 transition text-gray-400">
-                  <div className="w-12 h-12 rounded-full bg-red-600/20 text-[#961A1C] flex items-center justify-center mb-2">
-                    <Play size={20} className="ml-1 fill-[#961A1C]" />
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-200">
-                    <Upload size={14} /> Click or drop cover media thumbnail
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-1">App thumbnail preview placeholder (UI Only)</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setCoverImage(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </label>
-              )}
-            </div>
-
             {/* Tag Level Badge & Select */}
             <div className="flex items-center justify-between gap-3">
               <div className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30">
@@ -883,20 +838,20 @@ function InvestmentManagementContent() {
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Product Title (e.g. Fixed Deposit Portfolio)"
+                placeholder="Investment Title (e.g. Fixed Deposit High Yield Portfolio)"
                 className={`w-full text-xl sm:text-2xl font-bold bg-transparent text-gray-900 dark:text-white border-b-2 border-dashed focus:border-solid border-gray-300 dark:border-gray-700 py-1.5 focus:border-[#961A1C] outline-none transition placeholder:text-gray-300 dark:placeholder:text-gray-600 ${
                   formErrors.title ? 'border-red-500' : ''
                 }`}
               />
               {formErrors.title && <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>}
-              <p className="text-[11px] text-gray-400 mt-1">Retail investor mobile app header</p>
+              <p className="text-[11px] text-gray-400 mt-1">Retail investor mobile app header title</p>
             </div>
 
-            {/* Education / Investment Type Dropdown & Category Type Dropdown */}
+            {/* Investment Type Dropdown & Category Type Dropdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Education Type *
+                  Investment Type *
                 </label>
                 <Select
                   value={form.code || 'mutual_funds'}
@@ -931,7 +886,7 @@ function InvestmentManagementContent() {
                   value={form.heroText}
                   onChange={(e) => setForm({ ...form, heroText: e.target.value })}
                   className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                  placeholder="Investment product summary for investors..."
+                  placeholder="Investment product summary for retail investors..."
                 />
               </div>
 
@@ -944,7 +899,7 @@ function InvestmentManagementContent() {
                   value={form.detailsText}
                   onChange={(e) => setForm({ ...form, detailsText: e.target.value })}
                   className="w-full bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C] resize-none"
-                  placeholder="Full investment terms, security backing, and strategy..."
+                  placeholder="Full investment terms, security backing, and strategy overview..."
                 />
               </div>
             </div>
@@ -953,7 +908,7 @@ function InvestmentManagementContent() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                  How It Works (Steps)
+                  How It Works — Step-by-Step Investment Guide
                 </label>
                 <button
                   type="button"
@@ -1007,7 +962,7 @@ function InvestmentManagementContent() {
               <div className="flex items-center gap-2 mb-3">
                 <Wifi size={16} className="text-[#961A1C]" />
                 <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
-                  Risk Level
+                  Risk Level Profile
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1044,7 +999,7 @@ function InvestmentManagementContent() {
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <div className="pr-3">
                   <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                    Would the user need capital to understand this lecture?
+                    Would the customer need capital for this investment?
                   </p>
                   <p className="text-[10px] text-gray-400 mt-0.5">Capital Guaranteed</p>
                 </div>
@@ -1058,7 +1013,7 @@ function InvestmentManagementContent() {
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <div className="pr-3">
                   <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                    The customer would get ROI after taking this lecture
+                    Will the customer receive guaranteed ROI for this investment?
                   </p>
                   <p className="text-[10px] text-gray-400 mt-0.5">Returns Guaranteed</p>
                 </div>
@@ -1072,7 +1027,7 @@ function InvestmentManagementContent() {
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <div className="pr-3">
                   <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                    Would the user have restrictions on withdrawal?
+                    Are there withdrawal restrictions on this investment?
                   </p>
                   <p className="text-[10px] text-gray-400 mt-0.5">Withdrawal Restrictions</p>
                 </div>
@@ -1091,7 +1046,7 @@ function InvestmentManagementContent() {
                     Active Status
                   </span>
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">
-                    Retail users can now have access to this investment product
+                    Retail users can now access this investment offering
                   </p>
                 </div>
                 <Switch
@@ -1115,7 +1070,7 @@ function InvestmentManagementContent() {
               ) : (
                 <Check size={16} />
               )}
-              <span>{drawerMode === 'create' ? 'Create Investment Product' : 'Save Changes'}</span>
+              <span>{drawerMode === 'create' ? 'Add Investment' : 'Save Changes'}</span>
             </button>
           </div>
         </form>
@@ -1148,18 +1103,18 @@ function InvestmentManagementContent() {
 
       {/* --- DELETE CONFIRMATION MODAL --- */}
       <Modal
-        title="Delete Investment Product"
+        title="Delete Investment"
         open={Boolean(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
         onOk={handleDelete}
         confirmLoading={isDeleting}
-        okText="Delete Product"
+        okText="Delete Investment"
         okButtonProps={{ danger: true }}
         width={400}
         centered
       >
         <div className="py-2 text-xs text-gray-600 dark:text-gray-300">
-          Are you sure you want to delete investment product <strong className="text-gray-900 dark:text-white">&ldquo;{deleteTarget?.title}&rdquo;</strong>? This action will remove it from the backend API.
+          Are you sure you want to delete investment <strong className="text-gray-900 dark:text-white">&ldquo;{deleteTarget?.title}&rdquo;</strong>? This action will remove it from the backend API.
         </div>
       </Modal>
 
