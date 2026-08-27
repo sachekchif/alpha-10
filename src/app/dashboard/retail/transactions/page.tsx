@@ -245,8 +245,13 @@ const trendDataMap = {
   ],
 };
 
-export default function TransactionsDirectoryPage() {
-  // Filters & Search State
+import {
+  useGetTransfersQuery,
+  useQueryTransferStatusMutation,
+  Transfer,
+} from '@/auth/services/retailApi';
+
+export default function RetailTransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -254,6 +259,13 @@ export default function TransactionsDirectoryPage() {
   const [selectedCurrency, setSelectedCurrency] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('date-desc');
   const [trendPeriod, setTrendPeriod] = useState<'Today' | '7 Days' | '30 Days' | '12 Months'>('Today');
+
+  // RTK Query API Integration
+  const { data: apiTransfersData, isLoading: loadingApiTransfers, refetch: refetchTransfers } = useGetTransfersQuery({
+    search: searchQuery || undefined,
+    status: selectedStatus !== 'All' ? selectedStatus : undefined,
+  });
+  const [queryStatus, { isLoading: queryingUba }] = useQueryTransferStatusMutation();
 
   // Modals State
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);

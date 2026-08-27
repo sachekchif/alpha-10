@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Modal } from 'antd';
-import { Loader2, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, RefreshCw, Building, Plus, Trash2, Edit3, Search } from 'lucide-react';
 import { RoleGuard } from '@/auth/components/RoleGuard';
 import {
   useGetRetailGLsQuery,
@@ -12,6 +12,13 @@ import {
   RetailGLMapping,
   ApiProblemDetails,
 } from '@/auth/services/adminApi';
+import {
+  useGetTransferBanksQuery,
+  useCreateTransferBankMutation,
+  useUpdateTransferBankMutation,
+  useDeleteTransferBankMutation,
+  TransferBank,
+} from '@/auth/services/retailApi';
 import { useToast } from '@/auth/components/ToastContainer';
 
 export default function RetailSettingsPage() {
@@ -67,7 +74,6 @@ function RetailSettingsContent() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
   const [dateErrorDetails, setDateErrorDetails] = useState<ApiProblemDetails | null>(null);
 
-  // Today's real calendar date formatted as YYYY-MM-DD
   const todayCalendarDate = useMemoDateString();
 
   useEffect(() => {
@@ -77,6 +83,19 @@ function RetailSettingsContent() {
       setSystemDateInput(todayCalendarDate);
     }
   }, [systemDateData, todayCalendarDate]);
+
+  // ── Transfer Banks State ────────────────────────────────────────────────────
+  const [bankSearch, setBankSearch] = useState('');
+  const { data: banksData, isLoading: isBanksLoading, refetch: refetchBanks } = useGetTransferBanksQuery({ search: bankSearch });
+  const [createBank, { isLoading: isCreatingBank }] = useCreateTransferBankMutation();
+  const [updateBank, { isLoading: isUpdatingBank }] = useUpdateTransferBankMutation();
+  const [deleteBank] = useDeleteTransferBankMutation();
+
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [editingBank, setEditingBank] = useState<TransferBank | null>(null);
+  const [bankForm, setBankForm] = useState({ bankName: '', bankCode: '', cbnCode: '' });
+
+  const bankList: TransferBank[] = banksData?.data?.items || banksData?.data?.data || [];
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   async function handleSaveGLs(e: React.FormEvent) {
@@ -115,7 +134,46 @@ function RetailSettingsContent() {
     }
   }
 
-  // Calculate day difference between calendar date and system date
+  const handleOpenAddBank = () => {
+    setEditingBank(null);
+    setBankForm({ bankName: '', bankCode: '', cbnCode: '' });
+    setBankModalOpen(true);
+  };
+
+  const handleOpenEditBank = (b: TransferBank) => {
+    setEditingBank(b);
+    setBankForm({ bankName: b.bankName, bankCode: b.bankCode, cbnCode: b.cbnCode });
+    setBankModalOpen(true);
+  };
+
+  const handleSaveBank = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingBank) {
+        await updateBank({ id: editingBank.id, body: bankForm }).unwrap();
+        toast.success(`Bank ${bankForm.bankName} updated successfully.`);
+      } else {
+        await createBank(bankForm).unwrap();
+        toast.success(`Bank ${bankForm.bankName} added successfully.`);
+      }
+      setBankModalOpen(false);
+      refetchBanks();
+    } catch {
+      toast.error('Failed to save transfer bank details.');
+    }
+  };
+
+  const handleDeleteBank = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete bank "${name}"?`)) return;
+    try {
+      await deleteBank(id).unwrap();
+      toast.success(`Bank "${name}" removed.`);
+      refetchBanks();
+    } catch {
+      toast.error('Failed to delete transfer bank.');
+    }
+  };
+
   const dateDriftDays = calculateDateDrift(todayCalendarDate, systemDateInput);
 
   return (
@@ -127,11 +185,11 @@ function RetailSettingsContent() {
           Retail Controls & CORE Settings
         </h1>
         <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1">
-          Retail cash-inflow GL and CORE system-date settings. Restricted to SuperAdmin and Control.
+          Retail cash-inflow GL, transfer banks, and CORE system-date settings. Restricted to SuperAdmin and Control.
         </p>
       </div>
 
-      {/* ── PANEL 1: Retail Cash-Inflow GL Mapping (Full Width) ──────────────── */}
+      {/* ── PANEL 1: Retail Cash-Inflow GL Mapping ──────────────────────────── */}
       <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xs overflow-hidden w-full">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-900/30 flex items-center justify-between">
           <div>
@@ -152,7 +210,6 @@ function RetailSettingsContent() {
           </button>
         </div>
 
-        {/* Inline Error Details */}
         {glErrorDetails && (
           <div className="mx-6 mt-4 p-3 rounded bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-xs font-mono">
             <div className="flex items-center gap-2 text-gray-900 dark:text-white font-bold">
@@ -160,7 +217,6 @@ function RetailSettingsContent() {
               <span>[{glErrorDetails.status || 400}] {glErrorDetails.title || 'Validation Error'}</span>
             </div>
             <p className="text-gray-600 dark:text-gray-400 mt-1">{glErrorDetails.detail}</p>
-            {glErrorDetails.instance && <p className="text-[10px] text-gray-400 mt-0.5">Instance: {glErrorDetails.instance}</p>}
           </div>
         )}
 
@@ -172,8 +228,6 @@ function RetailSettingsContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              
-              {/* Mutual Funds GL */}
               <GLFieldInput
                 label="MUTUAL FUNDS GL ACCOUNT"
                 productType="Mutual Funds"
@@ -181,8 +235,6 @@ function RetailSettingsContent() {
                 onChange={(val) => setGlForm({ ...glForm, mutualFundsGL: val })}
                 placeholder="e.g. GL-102948-MF"
               />
-
-              {/* Fixed Deposit GL */}
               <GLFieldInput
                 label="FIXED DEPOSIT GL ACCOUNT"
                 productType="Fixed Deposit"
@@ -190,8 +242,6 @@ function RetailSettingsContent() {
                 onChange={(val) => setGlForm({ ...glForm, fixedDepositGL: val })}
                 placeholder="e.g. GL-102949-FD"
               />
-
-              {/* Bonds GL */}
               <GLFieldInput
                 label="BONDS GL ACCOUNT"
                 productType="Bonds"
@@ -199,8 +249,6 @@ function RetailSettingsContent() {
                 onChange={(val) => setGlForm({ ...glForm, bondsGL: val })}
                 placeholder="e.g. GL-102950-BND"
               />
-
-              {/* Stocks GL */}
               <GLFieldInput
                 label="STOCKS GL ACCOUNT"
                 productType="Stocks & Equities"
@@ -224,7 +272,92 @@ function RetailSettingsContent() {
         </form>
       </section>
 
-      {/* ── PANEL 2: CORE System Date (High-Impact Amber/Red Signal Border) ──── */}
+      {/* ── PANEL 2: Retail Transfer Banks Management ───────────────────────── */}
+      <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xs overflow-hidden w-full">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-900/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-xs font-mono font-bold tracking-wider uppercase text-gray-900 dark:text-white flex items-center gap-2">
+              <Building size={14} className="text-[#961A1C]" /> Transfer Banks Directory
+            </h2>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+              Supported financial institutions shown to retail customers for interbank transfers.
+            </p>
+          </div>
+          <button
+            onClick={handleOpenAddBank}
+            className="px-3 py-1.5 bg-[#961A1C] hover:bg-[#7a1517] text-white font-semibold text-xs rounded-lg flex items-center gap-1.5 transition shadow-xs"
+          >
+            <Plus size={14} /> Add Bank
+          </button>
+        </div>
+
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+            <input
+              type="text"
+              value={bankSearch}
+              onChange={(e) => setBankSearch(e.target.value)}
+              placeholder="Search bank name or code..."
+              className="w-full text-xs bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-2 pl-9 pr-4 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 font-mono">
+              <tr>
+                <th className="px-6 py-3 font-semibold uppercase">Bank Name</th>
+                <th className="px-6 py-3 font-semibold uppercase">Bank Code</th>
+                <th className="px-6 py-3 font-semibold uppercase">CBN Code</th>
+                <th className="px-6 py-3 font-semibold uppercase text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-sans">
+              {isBanksLoading ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-gray-400">
+                    <Loader2 size={18} className="animate-spin inline mr-2" /> Loading transfer banks...
+                  </td>
+                </tr>
+              ) : bankList.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-gray-400">
+                    No transfer banks found in directory.
+                  </td>
+                </tr>
+              ) : (
+                bankList.map((b) => (
+                  <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/40 transition">
+                    <td className="px-6 py-3.5 font-semibold text-gray-900 dark:text-white">{b.bankName}</td>
+                    <td className="px-6 py-3.5 font-mono text-gray-600 dark:text-gray-400">{b.bankCode}</td>
+                    <td className="px-6 py-3.5 font-mono text-gray-600 dark:text-gray-400">{b.cbnCode}</td>
+                    <td className="px-6 py-3.5 text-right space-x-2">
+                      <button
+                        onClick={() => handleOpenEditBank(b)}
+                        className="p-1 text-gray-400 hover:text-blue-600 transition"
+                        title="Edit Bank"
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBank(b.id, b.bankName)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition"
+                        title="Delete Bank"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── PANEL 3: CORE System Date ────────────────────────────────────────── */}
       <section className="bg-white dark:bg-gray-800 rounded-xl border-2 border-amber-500/40 dark:border-amber-600/50 shadow-2xs overflow-hidden w-full">
         <div className="px-6 py-4 border-b border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div>
@@ -251,7 +384,6 @@ function RetailSettingsContent() {
           </button>
         </div>
 
-        {/* Inline Error Details */}
         {dateErrorDetails && (
           <div className="mx-6 mt-4 p-3 rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs font-mono">
             <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-bold">
@@ -270,10 +402,7 @@ function RetailSettingsContent() {
             </div>
           ) : (
             <>
-              {/* Signature Element — Side-by-Side Date Comparison & Drift Indicator */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700">
-                
-                {/* Today's Real Calendar Date */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-mono font-bold tracking-wider text-gray-500 dark:text-gray-400 uppercase block">
                     CALENDAR DATE (REAL-TIME)
@@ -284,7 +413,6 @@ function RetailSettingsContent() {
                   <span className="text-[10px] text-gray-400 block font-mono">Real-world wall clock date</span>
                 </div>
 
-                {/* CORE System Business Date Input */}
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-mono font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase block">
                     CORE SYSTEM BUSINESS DATE
@@ -299,7 +427,6 @@ function RetailSettingsContent() {
                 </div>
               </div>
 
-              {/* Drift Status Banner */}
               <div className="p-3 rounded border flex items-center justify-between text-xs font-mono bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
                 <span className="text-gray-500 uppercase text-[10px] font-bold">DATE DRIFT STATUS:</span>
                 {dateDriftDays === 0 ? (
@@ -332,7 +459,69 @@ function RetailSettingsContent() {
         </div>
       </section>
 
-      {/* ── CORE System Date Confirmation Modal ──────────────────────────────── */}
+      {/* Add / Edit Bank Modal */}
+      {bankModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+              {editingBank ? 'Edit Transfer Bank' : 'Add Transfer Bank'}
+            </h3>
+            <form onSubmit={handleSaveBank} className="space-y-3 text-xs">
+              <div>
+                <label className="text-gray-500 font-medium">Bank Name</label>
+                <input
+                  type="text"
+                  required
+                  value={bankForm.bankName}
+                  onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
+                  placeholder="e.g. Zenith Bank"
+                  className="w-full mt-1 p-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-gray-500 font-medium">Bank Code</label>
+                <input
+                  type="text"
+                  required
+                  value={bankForm.bankCode}
+                  onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })}
+                  placeholder="e.g. 057"
+                  className="w-full mt-1 p-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-gray-500 font-medium">CBN Code</label>
+                <input
+                  type="text"
+                  required
+                  value={bankForm.cbnCode}
+                  onChange={(e) => setBankForm({ ...bankForm, cbnCode: e.target.value })}
+                  placeholder="e.g. 000015"
+                  className="w-full mt-1 p-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-mono"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setBankModalOpen(false)}
+                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingBank || isUpdatingBank}
+                  className="px-4 py-1.5 bg-[#961A1C] hover:bg-[#7a1517] text-white font-semibold rounded-lg flex items-center gap-1.5"
+                >
+                  {isCreatingBank || isUpdatingBank ? <Loader2 className="animate-spin" size={14} /> : 'Save Bank'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CORE System Date Confirmation Modal */}
       <Modal
         open={isConfirmModalOpen}
         onCancel={() => setIsConfirmModalOpen(false)}
@@ -349,11 +538,9 @@ function RetailSettingsContent() {
               Confirm CORE System Date Update
             </h3>
           </div>
-
           <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
-            Updating the CORE system business date alters transaction processing timestamps, interest posting schedules, and day-end operations across all retail accounts. This action has real processing consequences and cannot be automatically rolled back.
+            Updating the CORE system business date alters transaction processing timestamps, interest posting schedules, and day-end operations.
           </p>
-
           <div className="p-3 rounded bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-mono space-y-1 mb-6">
             <div className="flex justify-between">
               <span className="text-gray-500">Current CORE Date:</span>
@@ -366,7 +553,6 @@ function RetailSettingsContent() {
               <span className="font-bold text-amber-600 dark:text-amber-400">{systemDateInput}</span>
             </div>
           </div>
-
           <div className="flex gap-3 justify-end">
             <button
               onClick={() => setIsConfirmModalOpen(false)}
@@ -390,7 +576,6 @@ function RetailSettingsContent() {
   );
 }
 
-// ── GL Field Component with Configure Button for Unconfigured Fields ──────────
 function GLFieldInput({
   label,
   productType,
@@ -406,7 +591,6 @@ function GLFieldInput({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
   const isConfigured = Boolean(value && value.trim().length > 0);
 
   function handleStartEditing() {
@@ -484,7 +668,6 @@ function GLFieldInput({
   );
 }
 
-// ── Helper Utilities ──────────────────────────────────────────────────────────
 function useMemoDateString(): string {
   const [dateStr, setDateStr] = useState<string>('');
   useEffect(() => {
