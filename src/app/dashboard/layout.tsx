@@ -172,7 +172,8 @@ export default function DashboardLayout({
                   label="Corporate Banking"
                   isOpen={sidebarOpen}
                   subItems={[
-                    { label: "Corporate Users & Companies", href: "/dashboard/corporate/companies" },
+                    { label: "Dashboard", href: "/dashboard/corporate", exact: true },
+                    { label: "Customers", href: "/dashboard/corporate/customers" },
                     { label: "Virtual Accounts", href: "/dashboard/corporate/virtual-accounts" },
                     { label: "Compliance & Verification", href: "/dashboard/corporate/compliance" },
                     { label: "Transactions", href: "/dashboard/corporate/transactions" },
