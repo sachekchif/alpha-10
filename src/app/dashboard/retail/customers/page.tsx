@@ -219,112 +219,145 @@ export default function CustomersPage() {
         </button>
       </div>
 
+      {/* ── Filters Bar (On Top of Stat Cards) ─────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+        {/* Segmented Filter Tabs Container */}
+        <div className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-1 flex items-center gap-1 overflow-x-auto w-full md:w-auto shadow-2xs">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setActiveTab(tab);
+                setPage(1);
+              }}
+              className={`px-3.5 py-1.5 rounded-md text-xs transition whitespace-nowrap cursor-pointer ${
+                activeTab === tab
+                  ? 'bg-[#961A1C] text-white font-bold shadow-2xs'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-medium hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Filter & Sort Dropdowns */}
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'all', label: 'All Statuses', onClick: () => setActiveTab('All') },
+                { key: 'active', label: 'Active Accounts', onClick: () => setActiveTab('Active') },
+                { key: 'pending', label: 'Pending KYC', onClick: () => setActiveTab('Pending KYC') },
+                { key: 'suspended', label: 'Suspended Accounts', onClick: () => setActiveTab('Suspended') },
+              ],
+            }}
+            trigger={['click']}
+          >
+            <button className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
+              Filters <SlidersHorizontal size={13} className="text-gray-500" />
+            </button>
+          </Dropdown>
+
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'newest', label: 'Joined Date: Newest First' },
+                { key: 'oldest', label: 'Joined Date: Oldest First' },
+                { key: 'name', label: 'Customer Name (A-Z)' },
+              ],
+            }}
+            trigger={['click']}
+          >
+            <button className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
+              Sort by <ChevronDown size={13} className="text-gray-500" />
+            </button>
+          </Dropdown>
+        </div>
+      </div>
+
       {/* ── Top 6 Stat Cards ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* Card 1: Total Customers */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-2xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-[#961A1C] rounded-r-md" />
+          <div className="pl-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total Customers</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50 flex items-center gap-1">
-              <TrendingUp size={11} /> 5.0%
-            </span>
           </div>
-          <div className="my-1.5">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white font-mono tracking-tight">
+          <div className="mt-3 pl-2 flex flex-col gap-[2px]">
+            <p className="text-3xl font-bold text-gray-900 dark:text-white font-mono tracking-tight leading-none">
               {isLoading ? '...' : totalUsersCount.toLocaleString()}
             </p>
-          </div>
-          <div>
             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Customers</p>
           </div>
         </div>
 
         {/* Card 2: Active Accounts */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-2xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-emerald-500 rounded-r-md" />
+          <div className="pl-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Active Accounts</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50 flex items-center gap-1">
-              <TrendingUp size={11} /> 2.0%
-            </span>
           </div>
-          <div className="my-1.5">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white font-mono tracking-tight">
+          <div className="mt-3 pl-2 flex flex-col gap-[2px]">
+            <p className="text-3xl font-bold text-gray-900 dark:text-white font-mono tracking-tight leading-none">
               {isLoading ? '...' : activeCount.toLocaleString()}
             </p>
-          </div>
-          <div>
             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Active Users</p>
           </div>
         </div>
 
         {/* Card 3: Pending KYC */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-2xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-amber-500 rounded-r-md" />
+          <div className="pl-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Pending KYC</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/50 flex items-center gap-1">
-              <Clock size={11} /> {pendingCount}
-            </span>
           </div>
-          <div className="my-1.5">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white font-mono tracking-tight">
+          <div className="mt-3 pl-2 flex flex-col gap-[2px]">
+            <p className="text-3xl font-bold text-gray-900 dark:text-white font-mono tracking-tight leading-none">
               {isLoading ? '...' : pendingCount.toLocaleString()}
             </p>
-          </div>
-          <div>
             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Needs Review</p>
           </div>
         </div>
 
         {/* Card 4: Biometrics Enabled */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-2xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-purple-600 rounded-r-md" />
+          <div className="pl-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Biometrics Enabled</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-600 border border-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800/50 flex items-center gap-1">
-              <Fingerprint size={11} /> Active
-            </span>
           </div>
-          <div className="my-1.5">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white font-mono tracking-tight">
+          <div className="mt-3 pl-2 flex flex-col gap-[2px]">
+            <p className="text-3xl font-bold text-gray-900 dark:text-white font-mono tracking-tight leading-none">
               {isLoading ? '...' : biometricsCount.toLocaleString()}
             </p>
-          </div>
-          <div>
             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Biometrics Configured</p>
           </div>
         </div>
 
         {/* Card 5: Dormant Accounts */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-2xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-slate-400 rounded-r-md" />
+          <div className="pl-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Dormant Accounts</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-600 border border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/50 flex items-center gap-1">
-              <TrendingDown size={11} /> 1.4%
-            </span>
           </div>
-          <div className="my-1.5">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white font-mono tracking-tight">
+          <div className="mt-3 pl-2 flex flex-col gap-[2px]">
+            <p className="text-3xl font-bold text-gray-900 dark:text-white font-mono tracking-tight leading-none">
               {isLoading ? '...' : dormantCount.toLocaleString()}
             </p>
-          </div>
-          <div>
             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Inactive Users</p>
           </div>
         </div>
 
         {/* Card 6: Suspended */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between gap-1">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-2xs relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-red-600 rounded-r-md" />
+          <div className="pl-2">
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Suspended</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-600 border border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/50 flex items-center gap-1">
-              <AlertTriangle size={11} /> Action
-            </span>
           </div>
-          <div className="my-1.5">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white font-mono tracking-tight">
+          <div className="mt-3 pl-2 flex flex-col gap-[2px]">
+            <p className="text-3xl font-bold text-gray-900 dark:text-white font-mono tracking-tight leading-none">
               {isLoading ? '...' : suspendedCount.toLocaleString()}
             </p>
-          </div>
-          <div>
             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Blocked Accounts</p>
           </div>
         </div>
@@ -332,74 +365,42 @@ export default function CustomersPage() {
 
       {/* ── Table Card Container ─────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xs overflow-hidden">
-        {/* Table Control Bar */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row gap-4 justify-between items-center">
-          {/* Segmented Filter Tabs Container */}
-          <div className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-1 flex items-center gap-1 overflow-x-auto w-full md:w-auto shadow-2xs">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setPage(1);
-                }}
-                className={`px-3.5 py-1.5 rounded-md text-xs transition whitespace-nowrap cursor-pointer ${
-                  activeTab === tab
-                    ? 'bg-[#961A1C] text-white font-bold shadow-2xs'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-medium hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+        {/* Table Control Bar: Search & Pagination */}
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search name, BVN, email..."
+              className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-1.5 pl-8 pr-3 rounded-lg text-xs focus:outline-none focus:border-[#961A1C]"
+            />
           </div>
 
-          {/* Right Action Controls */}
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-            <div className="relative w-full sm:w-60">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Search name, BVN, email..."
-                className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-1.5 pl-8 pr-3 rounded-lg text-xs focus:outline-none focus:border-[#961A1C]"
-              />
+          {/* Top Pagination Controls */}
+          <div className="flex items-center gap-3 text-xs text-gray-500 font-mono w-full sm:w-auto justify-between sm:justify-end">
+            <span>Page {page} ({filteredByTab.length} items)</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="p-1 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition cursor-pointer"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">Page {page}</span>
+              <button
+                disabled={filteredByTab.length < pageSize}
+                onClick={() => setPage((p) => p + 1)}
+                className="p-1 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 transition cursor-pointer"
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
-
-            <Dropdown
-              menu={{
-                items: [
-                  { key: 'all', label: 'All Statuses', onClick: () => setActiveTab('All') },
-                  { key: 'active', label: 'Active Accounts', onClick: () => setActiveTab('Active') },
-                  { key: 'pending', label: 'Pending KYC', onClick: () => setActiveTab('Pending KYC') },
-                  { key: 'suspended', label: 'Suspended Accounts', onClick: () => setActiveTab('Suspended') },
-                ],
-              }}
-              trigger={['click']}
-            >
-              <button className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
-                Filters <SlidersHorizontal size={13} className="text-gray-500" />
-              </button>
-            </Dropdown>
-
-            <Dropdown
-              menu={{
-                items: [
-                  { key: 'newest', label: 'Joined Date: Newest First' },
-                  { key: 'oldest', label: 'Joined Date: Oldest First' },
-                  { key: 'name', label: 'Customer Name (A-Z)' },
-                ],
-              }}
-              trigger={['click']}
-            >
-              <button className="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
-                Sort by <ChevronDown size={13} className="text-gray-500" />
-              </button>
-            </Dropdown>
           </div>
         </div>
 
@@ -414,14 +415,6 @@ export default function CustomersPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#FAF9F7] dark:bg-gray-900/60 text-gray-500 font-mono text-[11px] border-b border-gray-200/70 dark:border-gray-700/80">
               <tr>
-                <th className="p-3 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedCustomers.length === filteredByTab.length && filteredByTab.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded border-gray-300 text-black focus:ring-black"
-                  />
-                </th>
                 <th className="px-4 py-3.5 font-bold tracking-wider uppercase text-gray-500 dark:text-gray-400">
                   FULL NAME & USERNAME •
                 </th>
@@ -447,7 +440,7 @@ export default function CustomersPage() {
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60 font-sans">
               {filteredByTab.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-xs font-mono">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-xs font-mono">
                     No customers found matching criteria.
                   </td>
                 </tr>
@@ -465,16 +458,6 @@ export default function CustomersPage() {
                       onClick={(e) => handleRowClick(c.id!, e)}
                       className="hover:bg-gray-50/80 dark:hover:bg-gray-900/40 transition cursor-pointer"
                     >
-                      {/* Checkbox */}
-                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedCustomers.includes(c.id!)}
-                          onChange={(e) => toggleSelectCustomer(c.id!, e as any)}
-                          className="rounded border-gray-300 text-black focus:ring-black"
-                        />
-                      </td>
-
                       {/* FULL NAME & USERNAME */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
@@ -602,28 +585,6 @@ export default function CustomersPage() {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 font-mono">
-          <div>Showing Page {page} ({filteredByTab.length} items)</div>
-          <div className="flex items-center gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 disabled:opacity-40"
-            >
-              <ChevronLeft size={15} />
-            </button>
-            <span>Page {page}</span>
-            <button
-              disabled={filteredByTab.length < pageSize}
-              onClick={() => setPage((p) => p + 1)}
-              className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 disabled:opacity-40"
-            >
-              <ChevronRight size={15} />
-            </button>
-          </div>
         </div>
       </div>
     </div>

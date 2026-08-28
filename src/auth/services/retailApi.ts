@@ -357,6 +357,7 @@ export interface VirtualAccount {
   bankName?: string;
   status?: string;
   vNuban?: string;
+  productType?: string;
   merchantCode?: string;
   customerReference?: string;
   type?: string;
@@ -1156,11 +1157,17 @@ export const {
   useCreateCashAccountMutation,
   // Mutual Funds
   useGetMutualFundHoldingsQuery,
+  useLazyGetMutualFundHoldingsQuery,
   useGetMutualFundAccountQuery,
+  useLazyGetMutualFundAccountQuery,
   useGetMutualFundTransactionsQuery,
+  useLazyGetMutualFundTransactionsQuery,
+  useGetMutualFundStatementQuery,
   useLazyGetMutualFundStatementQuery,
   useGetMutualFundPenaltyQuery,
+  useLazyGetMutualFundPenaltyQuery,
   useGetMutualFundAccruedInterestQuery,
+  useLazyGetMutualFundAccruedInterestQuery,
   // Wallet & Transactions
   useGetWalletQuery,
   useSuspendWalletMutation,
