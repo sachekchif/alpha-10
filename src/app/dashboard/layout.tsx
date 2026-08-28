@@ -172,17 +172,10 @@ export default function DashboardLayout({
                   label="Corporate Banking"
                   isOpen={sidebarOpen}
                   subItems={[
-                    { label: "Dashboard", href: "/dashboard/corporate" },
-                    { label: "Organizations", href: "/dashboard/corporate/organizations" },
-                    { label: "Corporate Users", href: "/dashboard/corporate/users" },
-                    { label: "KYC & Business Verification", href: "/dashboard/corporate/kyc" },
-                    { label: "Corporate Wallets", href: "/dashboard/corporate/wallets" },
-                    { label: "Treasury", href: "/dashboard/corporate/treasury" },
-                    { label: "Investments", href: "/dashboard/corporate/investments" },
+                    { label: "Corporate Users & Companies", href: "/dashboard/corporate/companies" },
+                    { label: "Virtual Accounts", href: "/dashboard/corporate/virtual-accounts" },
+                    { label: "Compliance & Verification", href: "/dashboard/corporate/compliance" },
                     { label: "Transactions", href: "/dashboard/corporate/transactions" },
-                    { label: "Approval Center", href: "/dashboard/corporate/approvals" },
-                    { label: "Support", href: "/dashboard/corporate/support" },
-                    { label: "Analytics", href: "/dashboard/corporate/analytics" },
                   ]}
                 />
 
