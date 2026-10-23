@@ -185,7 +185,7 @@ function LoginContent() {
             Keep me signed in
           </label>
           <Link
-            href="/auth/forgot-password"
+            href={`/auth/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
             className="font-semibold text-[#961A1C] hover:text-red-400 no-underline hover:underline transition-colors"
           >
             Forgot password?

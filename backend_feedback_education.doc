@@ -123,9 +123,21 @@
 <div class="header-box">
   <h1>📋 Backend API Feedback & Clarifications</h1>
   <p class="meta-text"><strong>System:</strong> Alpha-10 LMS Back Office · Retail Investor Education</p>
-  <p class="meta-text"><strong>Date:</strong> August 22, 2026</p>
+  <p class="meta-text"><strong>Date:</strong> October 23, 2026</p>
   <p class="meta-text"><strong>Target:</strong> Backend Engineering Team</p>
   <p class="meta-text"><strong>Prepared by:</strong> Front-end Team</p>
+</div>
+
+<div class="callout" style="background-color: #fef2f2; border-left: 5pt solid #dc2626; padding: 12pt 16pt; margin-bottom: 20pt;">
+  <h2 style="color: #dc2626; margin-top: 0; border-bottom: none; font-size: 13pt;">🚨 Critical Blocker (P0): 401 Permission Denied for SuperAdmin</h2>
+  <p><strong>Endpoint:</strong> <code>GET https://mobile-test.alpha10group.com/alphaten-admin/api/admin/investment-education?pageNumber=1&amp;pageSize=20</code></p>
+  <p><strong>Observed Response:</strong></p>
+  <pre>{
+    "statusCode": 401,
+    "statusMessage": "You do not have permission to perform this action."
+}</pre>
+  <p><strong>Issue:</strong> This request failed while authenticated with a valid JWT token as a <strong>SuperAdmin</strong> user.</p>
+  <p><strong>Required Action:</strong> While role-based access control (RBAC) restrictions or segregation of duties may be applied for specific roles in production, <strong>for now during the testing/staging phase, SuperAdmin accounts must be granted full, unrestricted access across all admin modules</strong>, specifically including Retail Investment Education (<code>/api/admin/investment-education</code> CRUD operations).</p>
 </div>
 
 <h2>❓ 1. Critical Questions & Clarifications</h2>

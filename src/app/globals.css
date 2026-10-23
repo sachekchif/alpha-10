@@ -38,3 +38,9 @@ body,
     color-scheme: dark;
   }
 }
+
+@layer utilities {
+  .gradient-brand-bg {
+    background: linear-gradient(to bottom, #f87171, #961A1C) !important;
+  }
+}

@@ -7,11 +7,13 @@ import { RoleGuard } from '@/auth/components/RoleGuard';
 import {
   useGetRetailGLsQuery,
   useUpdateRetailGLsMutation,
+  useUpdateGlMutation,
   useGetSystemDateQuery,
   useUpdateSystemDateMutation,
   RetailGLMapping,
   ApiProblemDetails,
 } from '@/auth/services/adminApi';
+
 import {
   useGetTransferBanksQuery,
   useCreateTransferBankMutation,
@@ -40,6 +42,7 @@ function RetailSettingsContent() {
   } = useGetRetailGLsQuery();
 
   const [updateGLs, { isLoading: isGlUpdating }] = useUpdateRetailGLsMutation();
+  const [updateSingleGl, { isLoading: isSingleGlUpdating }] = useUpdateGlMutation();
 
   const [glForm, setGlForm] = useState<RetailGLMapping>({
     mutualFundsGL: '',
@@ -116,6 +119,17 @@ function RetailSettingsContent() {
       const problem = extractProblemDetails(err);
       setGlErrorDetails(problem);
       toast.error(problem.detail || 'Failed to update GL account mappings.', 'Update Failed');
+    }
+  }
+
+  // Consumes PUT /api/admin/settings/UpdateGl (Single GL update)
+  async function handleSaveSingleGL(productId: string, glAccount: string, group?: 'mutual_funds' | 'fixed_returns' | 'bonds' | 'stocks') {
+    try {
+      await updateSingleGl({ productId, glAccount, group }).unwrap();
+      toast.success(`Single GL mapping for product "${productId}" updated to ${glAccount}.`, 'Product GL Updated');
+      refetchGLs();
+    } catch (err: any) {
+      toast.error('Failed to update single product GL mapping.', 'Update Failed');
     }
   }
 
@@ -233,6 +247,7 @@ function RetailSettingsContent() {
                 productType="Mutual Funds"
                 value={glForm.mutualFundsGL ?? ''}
                 onChange={(val) => setGlForm({ ...glForm, mutualFundsGL: val })}
+                onSingleSave={(val) => handleSaveSingleGL('mutual_funds_prod', val, 'mutual_funds')}
                 placeholder="e.g. GL-102948-MF"
               />
               <GLFieldInput
@@ -240,6 +255,7 @@ function RetailSettingsContent() {
                 productType="Fixed Deposit"
                 value={glForm.fixedDepositGL ?? ''}
                 onChange={(val) => setGlForm({ ...glForm, fixedDepositGL: val })}
+                onSingleSave={(val) => handleSaveSingleGL('fixed_deposit_prod', val, 'fixed_returns')}
                 placeholder="e.g. GL-102949-FD"
               />
               <GLFieldInput
@@ -247,6 +263,7 @@ function RetailSettingsContent() {
                 productType="Bonds"
                 value={glForm.bondsGL ?? ''}
                 onChange={(val) => setGlForm({ ...glForm, bondsGL: val })}
+                onSingleSave={(val) => handleSaveSingleGL('bonds_prod', val, 'bonds')}
                 placeholder="e.g. GL-102950-BND"
               />
               <GLFieldInput
@@ -254,6 +271,7 @@ function RetailSettingsContent() {
                 productType="Stocks & Equities"
                 value={glForm.stocksGL ?? ''}
                 onChange={(val) => setGlForm({ ...glForm, stocksGL: val })}
+                onSingleSave={(val) => handleSaveSingleGL('stocks_prod', val, 'stocks')}
                 placeholder="e.g. GL-102951-STK"
               />
             </div>
@@ -581,12 +599,14 @@ function GLFieldInput({
   productType,
   value,
   onChange,
+  onSingleSave,
   placeholder,
 }: {
   label: string;
   productType: string;
   value: string;
   onChange: (val: string) => void;
+  onSingleSave?: (val: string) => void;
   placeholder: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -646,19 +666,16 @@ function GLFieldInput({
             onBlur={() => {
               if (!value.trim()) setIsEditing(false);
             }}
-            className="w-full font-mono text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded p-2.5 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-gray-100"
+            className="w-full font-mono text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded p-2.5 focus:outline-none focus:ring-1 focus:ring-gray-900 dark:focus:ring-gray-100 pr-24"
           />
-          {isConfigured && (
+          {onSingleSave && value.trim() && (
             <button
               type="button"
-              onClick={() => {
-                onChange('');
-                setIsEditing(false);
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-[10px] font-mono p-1 cursor-pointer"
-              title="Clear GL Mapping"
+              onClick={() => onSingleSave(value.trim())}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#961A1C] hover:underline bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded"
+              title="Save only this GL via PUT /api/admin/settings/UpdateGl"
             >
-              Clear
+              Update Single
             </button>
           )}
         </div>

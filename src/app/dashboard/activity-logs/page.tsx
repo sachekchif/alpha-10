@@ -1,277 +1,446 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  History, Search, Loader2, AlertCircle, RefreshCw, Filter, X,
-} from 'lucide-react';
-import { RoleGuard } from '@/auth/components/RoleGuard';
-import { useGetAuditTrailQuery, AuditTrailEntry } from '@/auth/services/adminApi';
+import { useGetAuditTrailQuery } from '@/auth/services/adminApi';
+import { Select, Dropdown } from 'antd';
+import { Search, ChevronLeft, ChevronRight, User, AlertCircle, FileText, Filter, X, Copy, Check, MoreVertical } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TableSkeletonRows, TableSkeletonCol } from '@/components/TableSkeleton';
+
+const ACTIVITY_LOGS_SKELETON_COLS: TableSkeletonCol[] = [
+  { type: 'checkbox', align: 'center' },
+  { type: 'text', width: 'w-24' },
+  { type: 'avatar', width: 'w-28' },
+  { type: 'text', width: 'w-20' },
+  { type: 'badge', align: 'center', width: 'w-16' },
+  { type: 'text', width: 'w-20' },
+  { type: 'text', width: 'w-48' },
+  { type: 'actions', align: 'right', stickyRight: true, width: 'w-16' },
+];
 
 export default function ActivityLogsPage() {
-  return (
-    <RoleGuard allowedRoles={['SuperAdmin']}>
-      <ActivityLogsContent />
-    </RoleGuard>
-  );
-}
-
-const MODULE_OPTIONS = [
-  'All', 'InvestmentEducation', 'MutualFundContent', 'PortfolioSettings',
-  'AdminUsers', 'Auth', 'System',
-];
-
-const ACTION_OPTIONS = [
-  'All', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'VIEW',
-];
-
-function ActivityLogsContent() {
-  const [pageNumber, setPageNumber] = useState(1);
-  const PAGE_SIZE = 25;
-
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [referenceId, setReferenceId] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
   const [actionFilter, setActionFilter] = useState('');
-  const [referenceId, setReferenceId] = useState('');
-  const [performedById, setPerformedById] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const [appliedModule, setAppliedModule] = useState('');
-  const [appliedAction, setAppliedAction] = useState('');
-  const [appliedReferenceId, setAppliedReferenceId] = useState('');
-  const [appliedPerformedById, setAppliedPerformedById] = useState('');
+  const handleCopy = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(type);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-  const { data, isFetching, isError, refetch } = useGetAuditTrailQuery({
-    module: appliedModule || undefined,
-    action: appliedAction || undefined,
-    referenceId: appliedReferenceId || undefined,
-    performedById: appliedPerformedById || undefined,
-    pageNumber,
-    pageSize: PAGE_SIZE,
+  const { data: response, isLoading, isError, error, refetch } = useGetAuditTrailQuery({
+    pageNumber: page,
+    pageSize,
+    referenceId: referenceId || undefined,
+    module: moduleFilter || undefined,
+    action: actionFilter || undefined,
   });
 
-  const rawData = data?.data;
-  const items: AuditTrailEntry[] = rawData
-    ? Array.isArray(rawData)
-      ? rawData
-      : Array.isArray((rawData as any)?.items) ? (rawData as any).items
-      : Array.isArray((rawData as any)?.data) ? (rawData as any).data : []
-    : [];
-  const totalCount: number = (rawData as any)?.totalCount ?? items.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const auditEvents = response?.data?.items || response?.data?.data || [];
+  const totalCount = response?.data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
-  const hasActiveFilters = appliedModule || appliedAction || appliedReferenceId || appliedPerformedById;
+  const modules = [
+    'AdminUser', 'RetailKyc', 'CorporateOnboard', 'InvestmentEducation', 
+    'MutualFundContent', 'PortfolioSettings', 'CashInflowGLs', 'SystemConfig', 
+    'Learn', 'Support'
+  ];
 
-  function applyFilters() {
-    setAppliedModule(moduleFilter && moduleFilter !== 'All' ? moduleFilter : '');
-    setAppliedAction(actionFilter && actionFilter !== 'All' ? actionFilter : '');
-    setAppliedReferenceId(referenceId.trim());
-    setAppliedPerformedById(performedById.trim());
-    setPageNumber(1);
-    setShowFilters(false);
-  }
+  const actions = ['Initiated', 'Approved', 'Rejected', 'Created', 'Updated', 'Deleted'];
 
-  function clearFilters() {
+  const moduleOptions = [
+    { value: '', label: 'All Modules' },
+    ...modules.map(m => ({ value: m, label: m.replace(/([A-Z])/g, ' $1').trim() }))
+  ];
+
+  const actionOptions = [
+    { value: '', label: 'All Actions' },
+    ...actions.map(a => ({ value: a, label: a }))
+  ];
+
+  const getStatusPill = (action: string) => {
+    switch (action?.toLowerCase()) {
+      case 'approved':
+      case 'created':
+      case 'success':
+        return 'text-emerald-700 bg-emerald-50 border border-emerald-200';
+      case 'rejected':
+      case 'deleted':
+        return 'text-red-700 bg-red-50 border border-red-200';
+      case 'updated':
+      case 'initiated':
+      case 'requested':
+        return 'text-teal-700 bg-teal-50 border border-teal-200';
+      default:
+        return 'text-gray-700 bg-gray-50 border border-gray-200';
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const handleClearFilters = () => {
     setModuleFilter('');
     setActionFilter('');
     setReferenceId('');
-    setPerformedById('');
-    setAppliedModule('');
-    setAppliedAction('');
-    setAppliedReferenceId('');
-    setAppliedPerformedById('');
-    setPageNumber(1);
-  }
-
-  function formatTimestamp(ts?: string) {
-    if (!ts) return '—';
-    return new Date(ts).toLocaleString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-    });
-  }
-
-  function actionColor(action?: string) {
-    if (!action) return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
-    const a = action.toUpperCase();
-    if (a === 'CREATE') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-    if (a === 'UPDATE') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-    if (a === 'DELETE') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-    if (a === 'LOGIN') return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
-    return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
-  }
+    setPage(1);
+  };
 
   return (
-    <div className="flex flex-col gap-8 pb-12 w-full animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Activity Logs</h1>
-          <p className="text-gray-500 text-sm mt-1">Audit trail of all admin actions across the platform</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-          </button>
-          <button
-            id="audit-filter-btn"
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition ${hasActiveFilters
-              ? 'bg-[#961A1C] text-white hover:bg-[#7a1517]'
-              : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <Filter size={14} /> Filters {hasActiveFilters && '(Active)'}
-          </button>
-          {hasActiveFilters && (
-            <button onClick={clearFilters} className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition">
-              <X size={13} /> Clear
-            </button>
-          )}
-        </div>
+    <div className="flex flex-col gap-2.5 max-w-[1600px] mx-auto h-full">
+      {/* Page Header */}
+      <div className="mb-0.5">
+        <h1 className="text-lg font-medium text-gray-900 dark:text-white">Activity Logs</h1>
+        <p className="text-xs text-gray-400 mt-0.5">
+          Audit trail of administrative actions and system events.
+        </p>
       </div>
 
-      {/* Filter Panel */}
-      {showFilters && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm animate-in slide-in-from-top-2 duration-200">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Filter Audit Logs</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Module</label>
-              <select value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]">
-                {MODULE_OPTIONS.map((m) => <option key={m} value={m === 'All' ? '' : m}>{m}</option>)}
-              </select>
+      {/* Main Table Card */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md flex flex-col flex-1 shadow-none overflow-hidden">
+        
+        {/* Always-Visible Filter Toolbar */}
+        <div className="p-2.5 border-b border-gray-200 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900/60 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+            {/* Search by Reference ID */}
+            <div className="relative min-w-[200px] max-w-xs flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <input
+                type="text"
+                placeholder="Filter by Reference ID..."
+                value={referenceId}
+                onChange={(e) => {
+                  setReferenceId(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:border-[#961A1C] transition-colors"
+              />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Action</label>
-              <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]">
-                {ACTION_OPTIONS.map((a) => <option key={a} value={a === 'All' ? '' : a}>{a}</option>)}
-              </select>
+
+            {/* Module Filter (Ant Design Select) */}
+            <div className="w-44">
+              <Select
+                value={moduleFilter || ''}
+                onChange={(val) => { setModuleFilter(val); setPage(1); }}
+                options={moduleOptions}
+                size="small"
+                className="w-full text-xs"
+                popupMatchSelectWidth={false}
+              />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Reference ID</label>
-              <input type="text" value={referenceId} onChange={(e) => setReferenceId(e.target.value)} placeholder="e.g. abc-123"
-                className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]" />
+
+            {/* Action Filter (Ant Design Select) */}
+            <div className="w-36">
+              <Select
+                value={actionFilter || ''}
+                onChange={(val) => { setActionFilter(val); setPage(1); }}
+                options={actionOptions}
+                size="small"
+                className="w-full text-xs"
+                popupMatchSelectWidth={false}
+              />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Performed By (ID)</label>
-              <input type="text" value={performedById} onChange={(e) => setPerformedById(e.target.value)} placeholder="Admin ID"
-                className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]" />
-            </div>
+
+            {/* Clear Filters Button */}
+            {(moduleFilter || actionFilter || referenceId) && (
+              <button 
+                onClick={handleClearFilters}
+                className="px-2 py-1 text-xs text-gray-500 hover:text-[#961A1C] flex items-center gap-1 transition-colors"
+                title="Reset filters"
+              >
+                <X size={13} />
+                Reset
+              </button>
+            )}
           </div>
-          <div className="flex justify-end mt-4 gap-3">
-            <button onClick={() => setShowFilters(false)} className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition">Cancel</button>
-            <button onClick={applyFilters} className="px-4 py-2 text-sm font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-lg transition">Apply Filters</button>
+
+          {/* Record Count */}
+          <div className="text-[11px] text-gray-400 font-mono">
+            {totalCount > 0 && `${totalCount} records`}
           </div>
         </div>
-      )}
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col overflow-hidden">
-        <div className="overflow-x-auto min-h-[300px]">
-          {isFetching ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
-              <Loader2 size={28} className="animate-spin text-[#961A1C]" />
-              <span className="text-sm font-medium">Loading activity logs...</span>
+        {/* Table Content */}
+        {isError ? (
+          <div className="p-10 flex flex-col items-center justify-center text-center">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-3">
+              <AlertCircle size={24} className="text-red-500" />
             </div>
-          ) : isError ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
-              <AlertCircle size={28} className="text-[#961A1C]" />
-              <span className="text-sm font-medium">Failed to load audit trail.</span>
-              <button onClick={() => refetch()} className="text-xs text-[#961A1C] hover:underline font-semibold">Try again</button>
-            </div>
-          ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
-              <History size={32} className="opacity-40" />
-              <span className="text-sm font-medium">
-                {hasActiveFilters ? 'No logs matched your filters.' : 'No activity logs found.'}
-              </span>
-              {hasActiveFilters && (
-                <button onClick={clearFilters} className="text-xs text-[#961A1C] hover:underline font-semibold">Clear filters</button>
-              )}
-            </div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Failed to load activity logs</h3>
+            <button onClick={() => refetch()} className="mt-3 px-3 py-1.5 bg-[#961A1C] text-white rounded text-xs font-medium hover:bg-[#7a1517] transition-colors cursor-pointer">
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100/75 dark:bg-gray-800/80 uppercase tracking-wider font-mono">
                 <tr>
-                  <th className="px-6 py-4 font-medium">Timestamp</th>
-                  <th className="px-6 py-4 font-medium">Module</th>
-                  <th className="px-6 py-4 font-medium">Action</th>
-                  <th className="px-6 py-4 font-medium">Performed By</th>
-                  <th className="px-6 py-4 font-medium">Reference ID</th>
-                  <th className="px-6 py-4 font-medium">Description</th>
-                  <th className="px-6 py-4 font-medium">IP Address</th>
+                  <th className="px-3 py-2 w-10 text-center border-b border-r border-gray-200 dark:border-gray-700">
+                    <input type="checkbox" className="rounded-sm border-gray-300 text-[#961A1C] focus:ring-[#961A1C]" />
+                  </th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Timestamp</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Actor</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Module</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Action</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Reference ID</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 w-full">Action Details</th>
+                  <th className="px-3 py-2 w-16 text-right border-b border-gray-200 dark:border-gray-700 sticky right-0 bg-gray-100 dark:bg-gray-800 z-10 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {items.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {formatTimestamp(entry.createdAt || entry.timestamp)}
-                    </td>
-                    <td className="px-6 py-4">
-                      {entry.module ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 font-mono">
-                          {entry.module}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-6 py-4">
-                      {entry.action ? (
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${actionColor(entry.action)}`}>
-                          {entry.action}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {entry.performedBy || entry.performedById || '—'}
-                        </p>
-                        {entry.performedById && entry.performedBy && (
-                          <p className="text-xs text-gray-400 font-mono">{entry.performedById}</p>
-                        )}
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800 font-sans">
+                {isLoading ? (
+                  <TableSkeletonRows rows={8} columns={ACTIVITY_LOGS_SKELETON_COLS} />
+                ) : auditEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-12 text-center">
+                      <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-200 dark:border-gray-700">
+                        <FileText size={24} className="text-gray-400" />
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {entry.referenceId ? (
-                        <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{entry.referenceId}</span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-6 py-4 max-w-xs">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{entry.description || '—'}</p>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 font-mono">
-                      {entry.ipAddress || '—'}
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">No audit records found</h3>
+                      <p className="text-xs text-gray-500">Try adjusting your filters or search query.</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  auditEvents.map((event, index) => (
+                  <tr key={event.id || index} className="hover:bg-blue-50/20 dark:hover:bg-gray-800/40 transition-colors group">
+                    <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800">
+                      <input type="checkbox" className="rounded-sm border-gray-300 text-[#961A1C] focus:ring-[#961A1C] cursor-pointer" />
+                    </td>
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                      {formatDate(event.createdAt || event.timestamp)}
+                    </td>
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0 text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                          {event.performedByName ? event.performedByName.charAt(0).toUpperCase() : <User size={10} />}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900 dark:text-gray-100 leading-tight">
+                            {event.performedByName || 'Unknown'}
+                          </span>
+                          {(event.performedByRole || event.performedByEmail) && (
+                            <span className="text-[10px] text-gray-400 font-mono leading-tight">
+                              {event.performedByRole || event.performedByEmail}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap font-mono text-[11px] text-gray-700 dark:text-gray-300">
+                      {event.module?.replace(/([A-Z])/g, ' $1').trim() || 'System'}
+                    </td>
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-semibold ${getStatusPill(event.action)}`}>
+                        {event.action}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                      {event.referenceId ? (
+                        <span className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300">
+                          {event.referenceId}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 text-xs min-w-[200px]" title={event.description}>
+                      {event.description || '—'}
+                    </td>
+                    <td className="px-3 py-2 align-middle border-b border-gray-200 dark:border-gray-800 text-right whitespace-nowrap sticky right-0 bg-white dark:bg-gray-900 z-10 group-hover:bg-gray-50 dark:group-hover:bg-gray-850 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button 
+                          onClick={() => setSelectedEvent(event)}
+                          className="text-[11px] font-medium text-[#961A1C] hover:bg-[#961A1C]/10 px-2.5 py-0.5 rounded border border-[#961A1C]/20 hover:border-[#961A1C]/40 transition-colors"
+                        >
+                          Details
+                        </button>
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: 'view',
+                                label: 'View Details',
+                                icon: <FileText size={13} />,
+                                onClick: () => setSelectedEvent(event),
+                              },
+                              ...(event.referenceId ? [{
+                                key: 'copy-ref',
+                                label: 'Copy Reference ID',
+                                icon: <Copy size={13} />,
+                                onClick: () => handleCopy(event.referenceId!, 'ref'),
+                              }] : []),
+                              ...(event.id ? [{
+                                key: 'copy-id',
+                                label: 'Copy Event ID',
+                                icon: <Copy size={13} />,
+                                onClick: () => handleCopy(event.id!, 'id'),
+                              }] : []),
+                            ],
+                          }}
+                          trigger={['click']}
+                          placement="bottomRight"
+                        >
+                          <button 
+                            className="p-1 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            title="More options"
+                          >
+                            <MoreVertical size={13} />
+                          </button>
+                        </Dropdown>
+                      </div>
+                    </td>
+                  </tr>
+                )))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Pagination */}
-        {!isFetching && !isError && items.length > 0 && (
-          <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center text-sm text-gray-500">
-            <span>Showing {((pageNumber - 1) * PAGE_SIZE) + 1}–{Math.min(pageNumber * PAGE_SIZE, totalCount)} of {totalCount} logs</span>
-            <div className="flex gap-2">
-              <button onClick={() => setPageNumber((p) => Math.max(1, p - 1))} disabled={pageNumber === 1} className="px-3 py-1 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40">Prev</button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pg = pageNumber <= 3 ? i + 1 : pageNumber - 2 + i;
-                if (pg > totalPages) return null;
-                return (
-                  <button key={pg} onClick={() => setPageNumber(pg)}
-                    className={`px-3 py-1 border rounded-md ${pg === pageNumber ? 'bg-[#961A1C] text-white border-[#961A1C] font-medium' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-                    {pg}
-                  </button>
-                );
-              })}
-              <button onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))} disabled={pageNumber >= totalPages} className="px-3 py-1 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40">Next</button>
+        {/* Pagination Footer */}
+        {!isLoading && !isError && auditEvents.length > 0 && (
+          <div className="flex items-center justify-between px-3.5 py-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900 mt-auto text-xs">
+            <span className="text-gray-500 font-mono text-[11px]">
+              Showing {auditEvents.length} of {totalCount} records
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 font-mono text-[11px]">Page {page} of {totalPages}</span>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button 
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || totalPages === 0}
+                  className="p-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Details Drawer Overlay */}
+      <AnimatePresence>
+        {selectedEvent && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setSelectedEvent(null)}
+              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ x: '100%' }} 
+              animate={{ x: 0 }} 
+              exit={{ x: '100%' }} 
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-md h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl flex flex-col"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-800">
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white">Activity Details</h3>
+                <button onClick={() => setSelectedEvent(null)} className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg transition-colors bg-gray-100 dark:bg-gray-800">
+                  <X size={18} />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Date & Time</label>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{formatDate(selectedEvent.createdAt || selectedEvent.timestamp)}</p>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Actor</label>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                      {selectedEvent.performedByName ? (
+                        <span className="font-bold text-gray-500 text-sm uppercase">
+                          {selectedEvent.performedByName.charAt(0)}
+                        </span>
+                      ) : (
+                        <User size={18} className="text-gray-500" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 dark:text-white">{selectedEvent.performedByName || 'Unknown User'}</p>
+                      {(selectedEvent.performedByEmail || selectedEvent.performedByRole) && (
+                        <p className="text-xs text-gray-500">{selectedEvent.performedByEmail || selectedEvent.performedByRole}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Module & Action</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                      {selectedEvent.module?.replace(/([A-Z])/g, ' $1').trim() || 'System'}
+                    </span>
+                    <span className="text-gray-300 dark:text-gray-700">•</span>
+                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide ${getStatusPill(selectedEvent.action)}`}>
+                      {selectedEvent.action}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Description</label>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3.5 rounded-lg leading-relaxed border border-gray-100 dark:border-gray-700/50">
+                    {selectedEvent.description || 'No additional details provided.'}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-4 mt-2">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Event ID</label>
+                    <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                      <span className="font-mono text-xs text-gray-600 dark:text-gray-300 truncate mr-2">{selectedEvent.id || 'N/A'}</span>
+                      {selectedEvent.id && (
+                        <button onClick={() => handleCopy(selectedEvent.id, 'id')} className="p-1.5 text-gray-400 hover:text-[#961A1C] transition-colors bg-white dark:bg-gray-900 shadow-sm rounded-md border border-gray-200 dark:border-gray-700 shrink-0">
+                          {copiedId === 'id' ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {selectedEvent.referenceId && (
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Reference ID</label>
+                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <span className="font-mono text-xs text-gray-600 dark:text-gray-300 truncate mr-2">{selectedEvent.referenceId}</span>
+                        <button onClick={() => handleCopy(selectedEvent.referenceId, 'ref')} className="p-1.5 text-gray-400 hover:text-[#961A1C] transition-colors bg-white dark:bg-gray-900 shadow-sm rounded-md border border-gray-200 dark:border-gray-700 shrink-0">
+                          {copiedId === 'ref' ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

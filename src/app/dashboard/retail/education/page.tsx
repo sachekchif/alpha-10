@@ -4,11 +4,11 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dropdown, MenuProps, Modal, Drawer, Select, Switch } from 'antd';
 import {
-  BookOpen, Plus, Search, ChevronRight, X, Loader2, AlertCircle,
+  BookOpen, Plus, Search, ChevronRight, ChevronLeft, X, Loader2, AlertCircle,
   RefreshCw, Pencil, Trash2, Check, BarChart2, Users, Clock,
   TrendingUp, Eye, Shield, Zap, DollarSign, ToggleLeft, ToggleRight,
-  GraduationCap, Target, FileText, Filter, MoreHorizontal, Sparkles,
-  Play, Upload, Wifi, Image as ImageIcon,
+  GraduationCap, Target, FileText, Filter, MoreHorizontal, MoreVertical, Sparkles,
+  Play, Upload, Wifi, Image as ImageIcon, Copy, Percent,
 } from 'lucide-react';
 import { RoleGuard } from '@/auth/components/RoleGuard';
 import {
@@ -20,6 +20,7 @@ import {
   CreateInvestmentEducationRequest,
 } from '@/auth/services/adminApi';
 import { useToast } from '@/auth/components/ToastContainer';
+import { TableSkeletonRows, TableSkeletonCol } from '@/components/TableSkeleton';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const RISK_LEVELS = ['Low', 'Medium', 'High', 'Very High'] as const;
@@ -64,6 +65,18 @@ const CATEGORY_OPTIONS = [
   'Fixed Income', 'Equity', 'Money Market', 'Savings', 'Alternative', 'USD Investment', 'Investment Banking',
 ];
 
+const EDUCATION_SKELETON_COLS: TableSkeletonCol[] = [
+  { type: 'number', align: 'center', width: 'w-6' },
+  { type: 'avatar', width: 'w-24' },
+  { type: 'text', width: 'w-48' },
+  { type: 'badge', align: 'center', width: 'w-14' },
+  { type: 'badge', align: 'center', width: 'w-10' },
+  { type: 'badge', align: 'center', width: 'w-10' },
+  { type: 'badge', align: 'center', width: 'w-14' },
+  { type: 'badge', align: 'center', width: 'w-12' },
+  { type: 'actions', align: 'right', stickyRight: true, width: 'w-20' },
+];
+
 const emptyForm = (): CreateInvestmentEducationRequest & { category?: string; tags?: string } => ({
   code: 'mutual_funds',
   title: '',
@@ -95,6 +108,7 @@ function InvestmentEducationContent() {
   const toast = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('All');
   const [riskFilter, setRiskFilter] = useState<string>('All');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [pageNumber, setPageNumber] = useState(1);
@@ -112,7 +126,7 @@ function InvestmentEducationContent() {
   const [deleteTarget, setDeleteTarget] = useState<InvestmentEducation | null>(null);
 
   // RTK Query
-  const { data, isFetching, isError, refetch } = useGetInvestmentEducationsQuery({ pageNumber, pageSize: PAGE_SIZE });
+  const { data, isFetching, isError, error, refetch } = useGetInvestmentEducationsQuery({ pageNumber, pageSize: PAGE_SIZE });
   const [createItem, { isLoading: isCreating }] = useCreateInvestmentEducationMutation();
   const [updateItem, { isLoading: isUpdating }] = useUpdateInvestmentEducationMutation();
   const [deleteItem, { isLoading: isDeleting }] = useDeleteInvestmentEducationMutation();
@@ -129,6 +143,8 @@ function InvestmentEducationContent() {
   const totalCount = (rawData as any)?.totalCount ?? items.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const activeCount = items.filter((i) => i.isActive).length;
+  const inactiveCount = Math.max(0, totalCount - activeCount);
+  const userPercentage = totalCount > 0 ? ((activeCount / totalCount) * 100).toFixed(1) + '%' : '0.0%';
 
   // Client-side filter (remove once server-side search/filter is available)
   const filtered = useMemo(() => {
@@ -136,16 +152,19 @@ function InvestmentEducationContent() {
       const matchSearch =
         !searchQuery ||
         i.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        i.code?.toLowerCase().includes(searchQuery.toLowerCase());
+        i.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        i.heroText?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        i.detailsText?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchType = typeFilter === 'All' || i.code?.toLowerCase() === typeFilter.toLowerCase();
       const matchRisk = riskFilter === 'All' || i.riskLevel === riskFilter;
       const matchStatus = statusFilter === 'All'
         ? true
         : statusFilter === 'Active'
           ? i.isActive === true
           : i.isActive === false;
-      return matchSearch && matchRisk && matchStatus;
+      return matchSearch && matchType && matchRisk && matchStatus;
     });
-  }, [items, searchQuery, riskFilter, statusFilter]);
+  }, [items, searchQuery, typeFilter, riskFilter, statusFilter]);
 
   // ── form helpers ────────────────────────────────────────────────────────────
   function validateForm() {
@@ -274,192 +293,234 @@ function InvestmentEducationContent() {
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-6 pb-12 w-full">
+    <div className="space-y-2.5 pb-8 w-full">
 
       {/* ── Page Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-xl font-medium text-gray-900 dark:text-white leading-tight">
-              Admin Education
-            </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              LMS content management for admin to help retail users understand what to invest in
-            </p>
-          </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div>
+          <h1 className="text-lg font-medium text-gray-900 dark:text-white leading-tight">
+            Investment Education Modules
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            LMS content modules and risk parameters for retail investor guidance
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
           >
-            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-            <span className="hidden sm:inline">Refresh</span>
+            <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+            <span>Refresh</span>
           </button>
           <button
             id="create-education-btn"
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-md shadow-sm transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#961A1C] hover:bg-[#7a1517] rounded-md shadow-sm transition cursor-pointer"
           >
-            <Plus size={15} /> Add Content
+            <Plus size={14} /> Add Module
           </button>
         </div>
       </div>
 
       {/* ── Analytics Stats Bar ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
         <StatCard
-          cardTitle="Total Modules"
+          cardTitle="Total"
           value={isFetching ? '—' : String(totalCount)}
-          topText={`${activeCount} published`}
-          icon={<FileText size={15} className="text-gray-400 shrink-0" />}
-          subText="Delivered to client"
+          topText="Total"
+          icon={<FileText size={14} className="text-gray-400 shrink-0" />}
+          subText="All educational modules"
         />
         <StatCard
-          cardTitle="Total Enrolled"
-          value="48,200"
-          topText="+18% from the last month"
-          icon={<Users size={15} className="text-gray-400 shrink-0" />}
-          subText="Across all modules"
+          cardTitle="Active"
+          value={isFetching ? '—' : String(activeCount)}
+          topText="Active"
+          icon={<Check size={14} className="text-emerald-500 shrink-0" />}
+          subText="Published to investors"
         />
         <StatCard
-          cardTitle="Avg Completion"
-          value="71.4%"
-          topText="+4.2% from the last month"
-          icon={<BarChart2 size={15} className="text-gray-400 shrink-0" />}
-          subText="Module completion rate"
+          cardTitle="Inactive"
+          value={isFetching ? '—' : String(inactiveCount)}
+          topText="Inactive"
+          icon={<X size={14} className="text-gray-400 shrink-0" />}
+          subText="Unpublished drafts"
         />
         <StatCard
-          cardTitle="Avg Read Time"
-          value="4.2 min"
-          topText="-0.8% from last month"
-          icon={<Clock size={15} className="text-gray-400 shrink-0" />}
-          subText="Average per module"
+          cardTitle="User Percentage"
+          value={isFetching ? '—' : userPercentage}
+          topText="User Percentage"
+          icon={<Percent size={14} className="text-[#961A1C] shrink-0" />}
+          subText="Curriculum availability rate"
         />
       </div>
 
-      {/* ── Main Content Card ─────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+      {/* ── Main Content Card (Audit Ledger Style) ────────────────────────── */}
+      <div className="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col">
 
-        {/* Toolbar */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-3 justify-between">
+        {/* Filters Toolbar */}
+        <div className="px-3.5 py-2.5 border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900 flex flex-wrap items-center gap-2.5 text-xs">
           {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+          <div className="relative min-w-[200px] flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={13} />
             <input
               type="text"
-              placeholder="Search by title or code…"
+              placeholder="Search title, code, summary..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPageNumber(1); }}
-              className="w-full bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 py-2 pl-8 pr-3 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+              className="w-full pl-8 pr-3 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
             />
           </div>
 
-          {/* Filters */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <Filter size={13} /> Filters:
-            </div>
+          {/* Module Type Filter */}
+          <Select
+            size="small"
+            value={typeFilter}
+            onChange={(val) => { setTypeFilter(val); setPageNumber(1); }}
+            className="w-36 text-xs"
+            options={[
+              { value: 'All', label: 'All Modules' },
+              ...EDUCATION_TYPES.map((t) => ({ value: t.value, label: t.label })),
+            ]}
+          />
 
-            {/* Risk Filter */}
-            <div className="flex items-center gap-1">
-              {(['All', ...RISK_LEVELS] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRiskFilter(r)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${riskFilter === r
-                    ? 'bg-[#961A1C] text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+          {/* Risk Filter */}
+          <Select
+            size="small"
+            value={riskFilter}
+            onChange={(val) => { setRiskFilter(val); setPageNumber(1); }}
+            className="w-28 text-xs"
+            options={[
+              { value: 'All', label: 'All Risks' },
+              ...RISK_LEVELS.map((r) => ({ value: r, label: `${r} Risk` })),
+            ]}
+          />
 
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#961A1C]"
+          {/* Status Filter */}
+          <Select
+            size="small"
+            value={statusFilter}
+            onChange={(val) => { setStatusFilter(val); setPageNumber(1); }}
+            className="w-28 text-xs"
+            options={[
+              { value: 'All', label: 'All Statuses' },
+              { value: 'Active', label: 'Active only' },
+              { value: 'Inactive', label: 'Draft only' },
+            ]}
+          />
+
+          {/* Reset Filters */}
+          {(searchQuery || typeFilter !== 'All' || riskFilter !== 'All' || statusFilter !== 'All') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setTypeFilter('All');
+                setRiskFilter('All');
+                setStatusFilter('All');
+                setPageNumber(1);
+              }}
+              className="text-[11px] text-gray-500 hover:text-[#961A1C] underline font-medium cursor-pointer ml-auto"
             >
-              <option>All</option>
-              <option>Active</option>
-              <option>Inactive</option>
-            </select>
-          </div>
+              Reset filters
+            </button>
+          )}
         </div>
 
-        {/* Content */}
-        <div className="min-h-[320px]">
-          {isFetching ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400">
-              <Loader2 size={28} className="animate-spin text-[#961A1C]" />
-              <span className="text-sm font-medium">Loading education content…</span>
-            </div>
-          ) : isError ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400">
-              <AlertCircle size={28} className="text-[#961A1C]" />
-              <span className="text-sm font-medium">Failed to load content.</span>
-              <button onClick={() => refetch()} className="text-xs text-[#961A1C] hover:underline font-semibold">Try again</button>
-            </div>
-          ) : filtered.length === 0 ? (
-            <EmptyState onCreateClick={openCreate} hasSearch={!!searchQuery} />
-          ) : (
-            <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-              {/* Column Headers */}
-              <div className="hidden md:grid grid-cols-12 gap-2 px-5 py-2.5 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-50/60 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800 text-center">
-                <div className="col-span-1">S/N</div>
-                <div className="col-span-3 text-left">Title / Description</div>
-                <div className="col-span-2 text-left">Module</div>
-                <div className="col-span-1">Risk Level</div>
-                <div className="col-span-1">Capital</div>
-                <div className="col-span-1">Returns</div>
-                <div className="col-span-1">Withdrawal</div>
-                <div className="col-span-2 text-right">Actions</div>
+        {/* Content Table */}
+        <div className="min-h-[300px]">
+          {isError ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center">
+              <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 flex items-center justify-center">
+                <AlertCircle size={20} className="text-[#961A1C]" />
               </div>
-
-              {filtered.map((item, idx) => (
-                <EducationRow
-                  key={item.id}
-                  item={item}
-                  index={idx}
-                  onView={() => router.push(`/dashboard/retail/education/${item.id}`)}
-                  onEdit={() => openEdit(item)}
-                  onDelete={() => setDeleteTarget(item)}
-                  onToggle={() => handleToggleActive(item)}
-                />
-              ))}
+              <div className="max-w-md">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                  {(error as any)?.status === 401 || (error as any)?.data?.statusCode === 401
+                    ? 'Permission Denied (HTTP 401)'
+                    : 'Failed to load education modules'}
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {(error as any)?.data?.statusMessage ||
+                    'You do not have permission to perform this action. The backend requires granting the SuperAdmin role access to /api/admin/investment-education.'}
+                </p>
+              </div>
+              <button
+                onClick={() => refetch()}
+                className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#961A1C] hover:bg-[#7e1517] text-white rounded-md text-xs font-semibold shadow-2xs transition cursor-pointer"
+              >
+                <span>Retry Fetch</span>
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100/75 dark:bg-gray-800/80 uppercase tracking-wider font-mono">
+                  <tr>
+                    <th className="px-3 py-2 w-12 text-center border-b border-r border-gray-200 dark:border-gray-700">#</th>
+                    <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Module Code</th>
+                    <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700">Title &amp; Overview</th>
+                    <th className="px-3 py-2 text-center border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Risk</th>
+                    <th className="px-3 py-2 text-center border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Capital</th>
+                    <th className="px-3 py-2 text-center border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Returns</th>
+                    <th className="px-3 py-2 text-center border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Withdrawals</th>
+                    <th className="px-3 py-2 text-center border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Status</th>
+                    <th className="px-3 py-2 w-24 text-right border-b border-gray-200 dark:border-gray-700 sticky right-0 bg-gray-100 dark:bg-gray-800 z-10 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800 font-sans">
+                  {isFetching ? (
+                    <TableSkeletonRows rows={7} columns={EDUCATION_SKELETON_COLS} />
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="p-8">
+                        <EmptyState onCreateClick={openCreate} hasSearch={Boolean(searchQuery || typeFilter !== 'All' || riskFilter !== 'All' || statusFilter !== 'All')} />
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map((item, idx) => (
+                      <EducationRow
+                        key={item.id}
+                        item={item}
+                        index={idx}
+                        onView={() => router.push(`/dashboard/retail/education/${item.id}`)}
+                        onEdit={() => openEdit(item)}
+                        onDelete={() => setDeleteTarget(item)}
+                        onToggle={() => handleToggleActive(item)}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Footer */}
         {!isFetching && !isError && filtered.length > 0 && (
-          <div className="px-5 py-3.5 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-            <span>
-              Showing{' '}
-              <strong className="text-gray-700 dark:text-gray-300">{((pageNumber - 1) * PAGE_SIZE) + 1}–{Math.min(pageNumber * PAGE_SIZE, totalCount)}</strong>{' '}
-              of <strong className="text-gray-700 dark:text-gray-300">{totalCount}</strong> modules
+          <div className="flex items-center justify-between px-3.5 py-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900 mt-auto text-xs">
+            <span className="text-gray-500 font-mono text-[11px]">
+              Showing {((pageNumber - 1) * PAGE_SIZE) + 1}–{Math.min(pageNumber * PAGE_SIZE, totalCount)} of {totalCount} records
             </span>
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
-                disabled={pageNumber === 1}
-                className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition font-medium"
-              >
-                ← Prev
-              </button>
-              <span className="flex items-center px-2 font-semibold text-gray-700 dark:text-gray-300">
-                {pageNumber} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
-                disabled={pageNumber >= totalPages}
-                className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 transition font-medium"
-              >
-                Next →
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 font-mono text-[11px]">Page {pageNumber} of {totalPages}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                  disabled={pageNumber === 1}
+                  className="p-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-30 transition-colors cursor-pointer"
+                  title="Previous page"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
+                  disabled={pageNumber >= totalPages}
+                  className="p-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 disabled:opacity-30 transition-colors cursor-pointer"
+                  title="Next page"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -853,38 +914,39 @@ const getCardMenu = (cardTitle: string): MenuProps => ({
 interface StatCardProps {
   cardTitle: string;
   value: string;
-  topText: string;
+  topText?: string;
   icon: React.ReactNode;
   subText: string;
 }
 
 function StatCard({ cardTitle, value, topText, icon, subText }: StatCardProps) {
+  const displayTitle = cardTitle || topText || '';
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xs border border-gray-100 dark:border-gray-700/80 relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-all duration-200">
+    <div className="bg-white dark:bg-gray-800 rounded-md p-3.5 shadow-xs border border-gray-200 dark:border-gray-800 relative overflow-hidden flex flex-col justify-between hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200">
       {/* Small bar at middle left of the card in dark red (#961A1C) */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[3.5px] bg-[#961A1C] rounded-r-md" />
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] bg-[#961A1C] rounded-r-sm" />
 
-      {/* Top Row: Trend Badge on Left + Options Menu on Right */}
+      {/* Top Row: Title on Left + Options Menu on Right */}
       <div className="flex items-center justify-between pl-2">
-        <span className="text-xs font-semibold text-black dark:text-white">
-          {topText}
+        <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 tracking-tight">
+          {displayTitle}
         </span>
-        <Dropdown menu={getCardMenu(cardTitle)} trigger={['click']} placement="bottomRight">
-          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-md transition cursor-pointer">
-            <MoreHorizontal size={18} />
+        <Dropdown menu={getCardMenu(displayTitle)} trigger={['click']} placement="bottomRight">
+          <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded transition cursor-pointer">
+            <MoreHorizontal size={15} />
           </button>
         </Dropdown>
       </div>
 
       {/* Middle: Numeric Display with semibold font weight */}
-      <div className="my-3 pl-2">
-        <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight font-sans">
+      <div className="my-2 pl-2">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight font-mono">
           {value}
         </h2>
       </div>
 
       {/* Bottom Row: Icon + Subtitle text */}
-      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 pl-2 pt-1 border-t border-gray-50 dark:border-gray-700/40">
+      <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 pl-2 pt-1 border-t border-gray-100 dark:border-gray-800">
         {icon}
         <span>{subText}</span>
       </div>
@@ -905,7 +967,7 @@ function EducationRow({
   const risk = (item.riskLevel || 'Low') as RiskLevel;
   const meta = RISK_META[risk] ?? RISK_META['Low'];
   const iconKey = item.code?.toLowerCase();
-  const icon = INVESTMENT_ICONS[iconKey ?? ''] ?? <BookOpen size={18} />;
+  const icon = INVESTMENT_ICONS[iconKey ?? ''] ?? <BookOpen size={13} />;
 
   const formatModuleCode = (code?: string) => {
     if (!code) return '—';
@@ -914,95 +976,172 @@ function EducationRow({
     return code.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
-  return (
-    <div className="grid grid-cols-12 gap-3 items-center px-5 py-3.5 hover:bg-gray-50/60 dark:hover:bg-gray-700/20 transition-colors group border-b border-gray-50 dark:border-gray-800/40">
-      {/* 1. S/N */}
-      <div className="col-span-12 md:col-span-1 flex justify-center">
-        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-lg px-2.5 py-1 font-mono">
-          #{item.displayOrder || index + 1}
-        </span>
-      </div>
+  const copyCode = () => {
+    if (item.code) {
+      navigator.clipboard.writeText(item.code);
+    }
+  };
 
-      {/* 2. Title & Description */}
-      <div className="col-span-12 md:col-span-3 min-w-0 flex flex-col justify-center">
+  return (
+    <tr className="hover:bg-blue-50/20 dark:hover:bg-gray-800/40 transition-colors group">
+      {/* S/N */}
+      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+        #{item.displayOrder || index + 1}
+      </td>
+
+      {/* Module Code */}
+      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
+        <div className="flex items-center gap-1.5">
+          <span className="p-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 shrink-0">
+            {icon}
+          </span>
+          <div className="flex flex-col">
+            <span className="font-mono text-[11px] font-semibold text-gray-800 dark:text-gray-200">
+              {item.code ? item.code.toUpperCase() : '—'}
+            </span>
+            <span className="text-[10px] text-gray-400">
+              {formatModuleCode(item.code)}
+            </span>
+          </div>
+        </div>
+      </td>
+
+      {/* Title & Overview */}
+      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 min-w-[200px]">
         <button
           onClick={onView}
-          className="font-bold text-sm text-gray-900 dark:text-white hover:text-[#961A1C] dark:hover:text-[#e05557] transition-colors text-left truncate block"
+          className="font-medium text-xs text-gray-900 dark:text-white hover:text-[#961A1C] dark:hover:text-[#e05557] transition-colors text-left truncate block max-w-xs cursor-pointer"
           title={item.title}
         >
           {item.title}
         </button>
-        <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-xs mt-0.5">
-          {item.heroText || item.detailsText || 'No description provided'}
-        </p>
-      </div>
+        {(item.heroText || item.detailsText) && (
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate max-w-xs mt-0.5">
+            {item.heroText || item.detailsText}
+          </p>
+        )}
+      </td>
 
-      {/* 3. Module */}
-      <div className="col-span-12 md:col-span-2 min-w-0">
-        <span className="font-semibold text-xs text-gray-900 dark:text-white truncate block">
-          {formatModuleCode(item.code)}
-        </span>
-      </div>
-
-      {/* 4. Risk Level — col 1 */}
-      <div className="hidden md:flex col-span-1 justify-center items-center">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${meta.bg} ${meta.color}`}>
-          <Wifi size={11} />
+      {/* Risk Level */}
+      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${meta.bg} ${meta.color}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
           {item.riskLevel || 'Low'}
         </span>
-      </div>
+      </td>
 
-      {/* 5. Capital — col 1 */}
-      <div className="hidden md:flex col-span-1 justify-center items-center text-xs">
+      {/* Guaranteed Capital */}
+      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
         {item.capitalGuaranteed ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400" title="Capital Guaranteed">
-            <Check size={12} className="stroke-[3]" /> Yes
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <Check size={11} className="stroke-[3]" /> Yes
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-500 dark:text-red-400" title="No Capital Needed">
-            <X size={12} className="stroke-[2.5]" /> No
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-400">
+            <X size={11} className="stroke-[2.5]" /> No
           </span>
         )}
-      </div>
+      </td>
 
-      {/* 6. Returns — col 1 */}
-      <div className="hidden md:flex col-span-1 justify-center items-center text-xs">
+      {/* Guaranteed Returns */}
+      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
         {item.returnsGuaranteed ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400" title="ROI Guaranteed">
-            <Check size={12} className="stroke-[3]" /> Yes
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <Check size={11} className="stroke-[3]" /> Yes
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-500 dark:text-red-400" title="No ROI Guaranteed">
-            <X size={12} className="stroke-[2.5]" /> No
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-400">
+            <X size={11} className="stroke-[2.5]" /> No
           </span>
         )}
-      </div>
+      </td>
 
-      {/* 7. Withdrawal — col 1 */}
-      <div className="hidden md:flex col-span-1 justify-center items-center text-xs">
+      {/* Withdrawal Restrictions */}
+      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
         {item.withdrawalRestrictions ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400" title="Restricted Withdrawal">
-            <X size={12} className="stroke-[2.5]" /> Yes
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400">
+            Restricted
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400" title="Flexible Withdrawal">
-            <Check size={12} className="stroke-[3]" /> No
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400">
+            Flexible
           </span>
         )}
-      </div>
+      </td>
 
-      {/* 8. Actions (Text link View Details + Edit & Delete icons) — col 2 */}
-      <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-2">
-        <button
-          onClick={onView}
-          className="text-xs font-semibold text-[#961A1C] hover:underline cursor-pointer"
-        >
-          View Details
-        </button>
-        <ActionBtn onClick={onEdit} title="Edit" icon={<Pencil size={14} />} hoverColor="hover:text-[#961A1C] hover:bg-red-50 dark:hover:bg-red-900/20" />
-        <ActionBtn onClick={onDelete} title="Delete" icon={<Trash2 size={14} />} hoverColor="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" />
-      </div>
-    </div>
+      {/* Status */}
+      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${
+          item.isActive
+            ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400'
+            : 'text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-400'
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${item.isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+          {item.isActive ? 'Active' : 'Draft'}
+        </span>
+      </td>
+
+      {/* Sticky Right Actions Column */}
+      <td className="px-3 py-2 align-middle border-b border-gray-200 dark:border-gray-800 text-right whitespace-nowrap sticky right-0 bg-white dark:bg-gray-900 z-10 group-hover:bg-gray-50 dark:group-hover:bg-gray-850 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            onClick={onView}
+            className="text-[11px] font-medium text-[#961A1C] hover:bg-[#961A1C]/10 px-2.5 py-0.5 rounded border border-[#961A1C]/20 hover:border-[#961A1C]/40 transition-colors cursor-pointer"
+          >
+            Details
+          </button>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'view',
+                  label: 'View Details',
+                  icon: <Eye size={13} />,
+                  onClick: onView,
+                },
+                {
+                  key: 'edit',
+                  label: 'Edit Content',
+                  icon: <Pencil size={13} />,
+                  onClick: onEdit,
+                },
+                {
+                  key: 'toggle',
+                  label: item.isActive ? 'Set to Draft' : 'Publish Module',
+                  icon: item.isActive ? <ToggleLeft size={13} /> : <ToggleRight size={13} />,
+                  onClick: onToggle,
+                },
+                {
+                  key: 'copy',
+                  label: 'Copy Code',
+                  icon: <Copy size={13} />,
+                  onClick: copyCode,
+                },
+                {
+                  type: 'divider',
+                },
+                {
+                  key: 'delete',
+                  label: 'Delete Module',
+                  icon: <Trash2 size={13} />,
+                  danger: true,
+                  onClick: onDelete,
+                },
+              ],
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <button
+              className="p-1 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              title="More options"
+            >
+              <MoreVertical size={13} />
+            </button>
+          </Dropdown>
+        </div>
+      </td>
+    </tr>
   );
 }
 

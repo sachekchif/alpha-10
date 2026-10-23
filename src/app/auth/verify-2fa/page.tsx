@@ -192,9 +192,9 @@ function Verify2FAContent() {
 
   return (
     <>
-      {/* 2FA White Badge with black text */}
+      {/* 2FA Badge */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="px-3 py-1.5 bg-white text-black font-bold text-md rounded-md shadow-sm tracking-wider select-none">
+        <div className="px-3 py-1.5 bg-gradient-to-b from-red-400 to-[#961A1C] text-white font-bold text-md rounded-md shadow-sm tracking-wider select-none">
           2-FA
         </div>
       </div>

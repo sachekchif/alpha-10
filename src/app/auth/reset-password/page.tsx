@@ -2,7 +2,7 @@
 
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Lock, Mail, KeyRound, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, KeyRound, AlertCircle, ShieldCheck, CheckCircle2, XCircle } from 'lucide-react';
 import { AuthLayout } from '@/auth/components/AuthLayout';
 import { AuthHeader } from '@/auth/components/AuthHeader';
 import { PasswordStrength } from '@/auth/components/PasswordStrength';
@@ -95,12 +95,9 @@ function ResetPasswordContent() {
   return (
     <>
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-3 bg-[#961A1C]/10 border border-[#961A1C]/30 rounded-xl text-[#961A1C]">
+        <div className="p-3 bg-gradient-to-b from-red-400 to-[#961A1C] rounded-xl text-white shadow-lg">
           <ShieldCheck className="w-6 h-6" />
         </div>
-        <span className="text-xs font-semibold text-gray-400 tracking-wider uppercase">
-          Credential Security
-        </span>
       </div>
 
       <AuthHeader
@@ -244,7 +241,22 @@ function ResetPasswordContent() {
               {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          {errors.confirmPassword && (
+          {confirmPassword.length > 0 && (
+            <div className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${newPassword === confirmPassword ? 'text-emerald-400' : 'text-red-400'}`}>
+              {newPassword === confirmPassword ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Passwords match</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Passwords do not match</span>
+                </>
+              )}
+            </div>
+          )}
+          {errors.confirmPassword && confirmPassword.length === 0 && (
             <span className="text-xs text-red-400 mt-1.5 block">{errors.confirmPassword}</span>
           )}
         </div>

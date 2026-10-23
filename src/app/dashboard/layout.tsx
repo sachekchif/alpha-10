@@ -23,6 +23,8 @@ import {
   Files,
   History,
   Clock,
+  GraduationCap,
+  Headphones,
 } from 'lucide-react';
 
 import { useAppDispatch, useAppSelector } from '@/auth/hooks/useReduxHooks';
@@ -137,6 +139,20 @@ export default function DashboardLayout({
                     { label: "Settings", href: "/dashboard/retail/settings" },
                   ]}
                 />
+                <NavItem
+                  icon={<GraduationCap size={18} />}
+                  label="Customers Education"
+                  isOpen={sidebarOpen}
+                  subItems={[
+                    { label: "Overview", href: "/dashboard/learn", exact: true },
+                    { label: "Investment Education", href: "/dashboard/retail/education" },
+                    { label: "Articles", href: "/dashboard/learn/articles" },
+                    { label: "Glossary", href: "/dashboard/learn/glossary" },
+                    { label: "Quiz", href: "/dashboard/learn/quiz" },
+                    { label: "Topics", href: "/dashboard/learn/topics" },
+                    { label: "Webinars", href: "/dashboard/learn/webinars" },
+                  ]}
+                />
               </nav>
             </div>
           )}
@@ -156,12 +172,19 @@ export default function DashboardLayout({
                     { label: "Dashboard", href: "/dashboard/retail", exact: true },
                     { label: "Customers", href: "/dashboard/retail/customers" },
                     { label: "KYC", href: "/dashboard/retail/kyc" },
+                    { label: "Compliance", href: "/dashboard/retail/compliance" },
                     { label: "Wallets", href: "/dashboard/retail/wallets" },
+                    { label: "Virtual Accounts", href: "/dashboard/retail/virtual-accounts" },
                     { label: "Investments", href: "/dashboard/retail/investments" },
+                    { label: "Mutual Funds", href: "/dashboard/retail/mutual-funds" },
+                    { label: "Bonds", href: "/dashboard/retail/bonds" },
                     { label: "Transactions", href: "/dashboard/retail/transactions" },
-                    { label: "Support", href: "/dashboard/retail/support" },
+                    { label: "Referrals", href: "/dashboard/retail/referrals" },
+                    { label: "Devices & Security", href: "/dashboard/retail/devices" },
+                    { label: "Customer Support", href: "/dashboard/support" },
                     { label: "Products", href: "/dashboard/retail/products" },
                     { label: "Analytics", href: "/dashboard/retail/analytics" },
+                    { label: "Education", href: "/dashboard/retail/education" },
                     { label: "Portfolio Settings", href: "/dashboard/retail/portfolio" },
                     { label: "Settings", href: "/dashboard/retail/settings" },
                   ]}
@@ -177,6 +200,21 @@ export default function DashboardLayout({
                     { label: "Virtual Accounts", href: "/dashboard/corporate/virtual-accounts" },
                     { label: "Compliance & Verification", href: "/dashboard/corporate/compliance" },
                     { label: "Transactions", href: "/dashboard/corporate/transactions" },
+                  ]}
+                />
+
+                <NavItem
+                  icon={<GraduationCap size={18} />}
+                  label="Customers Education"
+                  isOpen={sidebarOpen}
+                  subItems={[
+                    { label: "Overview", href: "/dashboard/learn", exact: true },
+                    { label: "Investment Education", href: "/dashboard/retail/education" },
+                    { label: "Articles", href: "/dashboard/learn/articles" },
+                    { label: "Glossary", href: "/dashboard/learn/glossary" },
+                    { label: "Quiz", href: "/dashboard/learn/quiz" },
+                    { label: "Topics", href: "/dashboard/learn/topics" },
+                    { label: "Webinars", href: "/dashboard/learn/webinars" },
                   ]}
                 />
 
@@ -259,6 +297,7 @@ export default function DashboardLayout({
                 {sidebarOpen ? <hr className="border-gray-800 my-2 mx-2" /> : <div className="h-px bg-gray-800 my-2 mx-2"></div>}
 
                 <NavItem href="/dashboard/admins" icon={<Users size={18} />} label="Admin Management" isOpen={sidebarOpen} />
+                <NavItem href="/dashboard/support" icon={<Headphones size={18} />} label="Customer Support" isOpen={sidebarOpen} />
                 <NavItem href="/dashboard/activity-logs" icon={<History size={18} />} label="Activity Logs" isOpen={sidebarOpen} />
 
                 <NavItem
@@ -406,7 +445,6 @@ function NavItem({
   /** When true, only highlights if pathname matches href exactly (not prefix). */
   exact?: boolean,
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const pathname = usePathname();
 
   const hasSubItems = subItems && subItems.length > 0;
@@ -422,6 +460,14 @@ function NavItem({
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + '/')
   );
   const isActive = isDirectActive || isSubActive;
+
+  const [isExpanded, setIsExpanded] = useState(Boolean(isSubActive));
+
+  useEffect(() => {
+    if (isSubActive) {
+      setIsExpanded(true);
+    }
+  }, [isSubActive]);
 
   const handleClick = (e: React.MouseEvent) => {
     if (hasSubItems) {

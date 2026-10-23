@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Mail, KeyRound, AlertCircle } from 'lucide-react';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Mail, AlertCircle } from 'lucide-react';
+import { FaKey } from 'react-icons/fa';
 import { AuthLayout } from '@/auth/components/AuthLayout';
 import { AuthHeader } from '@/auth/components/AuthHeader';
 import { useForgotPasswordMutation } from '@/auth/services/authApi';
 import { useToast } from '@/auth/components/ToastContainer';
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+function ForgotPasswordContent() {
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState(searchParams.get('email') || '');
   const [error, setError] = useState('');
   const router = useRouter();
   const toast = useToast();
@@ -56,14 +58,11 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <AuthLayout>
+    <>
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-3 bg-[#961A1C]/10 border border-[#961A1C]/30 rounded-xl text-[#961A1C]">
-          <KeyRound className="w-6 h-6" />
+        <div className="p-3 bg-gradient-to-b from-red-400 to-[#961A1C] rounded-xl text-white shadow-lg">
+          <FaKey className="w-6 h-6" />
         </div>
-        <span className="text-xs font-semibold text-gray-400 tracking-wider uppercase">
-          Account Recovery
-        </span>
       </div>
 
       <AuthHeader
@@ -122,6 +121,16 @@ export default function ForgotPasswordPage() {
           )}
         </button>
       </form>
+    </>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <AuthLayout>
+      <Suspense fallback={<div className="text-white text-sm py-10 text-center">Loading...</div>}>
+        <ForgotPasswordContent />
+      </Suspense>
     </AuthLayout>
   );
 }

@@ -895,7 +895,7 @@ function InvestmentManagementContent() {
       <Drawer
         open={Boolean(drawerMode)}
         onClose={() => setDrawerMode(null)}
-        width={560}
+        size="large"
         destroyOnClose
         maskClosable={true}
         className="dark:bg-gray-900"
