@@ -17,7 +17,7 @@ function roleBadgeColor(role: string) {
 
 export default function AdminDetailPage() {
   return (
-    <RoleGuard allowedRoles={['SuperAdmin']}>
+    <RoleGuard allowedRoles={['SuperAdmin', 'Control']}>
       <AdminDetailContent />
     </RoleGuard>
   );

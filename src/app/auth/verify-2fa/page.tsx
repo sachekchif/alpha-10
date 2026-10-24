@@ -167,14 +167,8 @@ function Verify2FAContent() {
       const successMsg = result.statusMessage || 'Two-factor authentication successful. Access granted.';
       toast.success(successMsg, '2FA Verified');
 
-      // Role-based redirect: SuperAdmin → dashboard overview, Control → Retail CMS
-      const { isSuperAdmin: checkSuperAdmin, isControl: checkControl } = await import('@/auth/types/auth.types');
-      if (checkControl(user.role)) {
-        router.push('/dashboard/retail/education');
-      } else {
-        // SuperAdmin, Audit, Operations, Approver, Initiator → full dashboard
-        router.push('/dashboard');
-      }
+      // Access granted: direct redirect to main dashboard overview (Control and SuperAdmin have full access)
+      router.push('/dashboard');
     } catch (err: any) {
       const rawMsg =
         err?.data?.statusMessage ||

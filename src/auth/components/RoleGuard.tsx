@@ -48,6 +48,9 @@ export function RoleGuard({
     const userIsSuperAdmin = isSuperAdmin(role);
     const userIsControl = isControl(role);
 
+    // SuperAdmin and Control users have rights to everything
+    if (userIsSuperAdmin || userIsControl) return true;
+
     if (allowedRoles.includes('SuperAdmin') && userIsSuperAdmin) return true;
     if (allowedRoles.includes('Control') && userIsControl) return true;
 

@@ -30,7 +30,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/auth/hooks/useReduxHooks';
 import { clearAuth } from '@/auth/store/authSlice';
 import { useLogoutMutation } from '@/auth/services/authApi';
-import { isSuperAdmin, isControl, getRoleLabel } from '@/auth/types/auth.types';
+import { isSuperAdmin, isControl, hasFullAccess, getRoleLabel } from '@/auth/types/auth.types';
 
 export default function DashboardLayout({
   children,
@@ -82,6 +82,7 @@ export default function DashboardLayout({
   const userRole = user?.role;
   const userIsSuperAdmin = isSuperAdmin(userRole);
   const userIsControl = isControl(userRole);
+  const fullAccess = hasFullAccess(userRole);
   const roleLabel = getRoleLabel(userRole);
 
   // Admin name: use real name from Redux, fallback gracefully
@@ -125,40 +126,8 @@ export default function DashboardLayout({
             </div>
           )}
 
-          {/* ── RETAIL BANKING — visible to Control only ──────────────────────── */}
-          {userIsControl && (
-            <div className="px-4">
-              {sidebarOpen && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Retail Banking</p>}
-              <nav className="flex flex-col gap-1">
-                <NavItem
-                  icon={<Store size={18} />}
-                  label="Retail Banking"
-                  isOpen={sidebarOpen}
-                  subItems={[
-                    { label: "Portfolio Settings", href: "/dashboard/retail/portfolio" },
-                    { label: "Settings", href: "/dashboard/retail/settings" },
-                  ]}
-                />
-                <NavItem
-                  icon={<GraduationCap size={18} />}
-                  label="Customers Education"
-                  isOpen={sidebarOpen}
-                  subItems={[
-                    { label: "Overview", href: "/dashboard/learn", exact: true },
-                    { label: "Investment Education", href: "/dashboard/retail/education" },
-                    { label: "Articles", href: "/dashboard/learn/articles" },
-                    { label: "Glossary", href: "/dashboard/learn/glossary" },
-                    { label: "Quiz", href: "/dashboard/learn/quiz" },
-                    { label: "Topics", href: "/dashboard/learn/topics" },
-                    { label: "Webinars", href: "/dashboard/learn/webinars" },
-                  ]}
-                />
-              </nav>
-            </div>
-          )}
-
-          {/* ── GENERAL — visible to SuperAdmin only ──────────────────────── */}
-          {userIsSuperAdmin && (
+          {/* ── GENERAL — visible to SuperAdmin and Control (full access to everything) ──────── */}
+          {(fullAccess || !userRole) && (
             <div className="px-4">
               {sidebarOpen && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">General</p>}
               <nav className="flex flex-col gap-1">

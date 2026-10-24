@@ -94,7 +94,7 @@ function StatCard({ cardTitle, value, topText, icon, subText }: StatCardProps) {
 
 export default function AdminManagementPage() {
   return (
-    <RoleGuard allowedRoles={['SuperAdmin']}>
+    <RoleGuard allowedRoles={['SuperAdmin', 'Control']}>
       <AdminManagementContent />
     </RoleGuard>
   );

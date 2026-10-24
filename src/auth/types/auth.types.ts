@@ -99,6 +99,10 @@ export function isControl(role?: string): boolean {
   return ['Control', 'control'].includes(role);
 }
 
+export function hasFullAccess(role?: string): boolean {
+  return isSuperAdmin(role) || isControl(role);
+}
+
 export function getRoleLabel(role?: string): string {
   if (isSuperAdmin(role)) return 'Super Admin';
   if (isControl(role)) return 'Control';
