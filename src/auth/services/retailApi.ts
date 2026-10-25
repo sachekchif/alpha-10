@@ -135,6 +135,8 @@ export interface RetailUserFullRecord extends RetailUser {
 export interface KycProfile {
   id?: string;
   userId?: string;
+  customerId?: string;
+  kycLevel?: number;
   title?: string;
   otherNames?: string;
   maritalStatus?: string;
@@ -169,7 +171,14 @@ export interface KycProfile {
   nationalId?: string;
   remarks?: string;
   status?: KycStatus;
+  dateCreated?: string;
+  dateUpdated?: string;
   updatedAt?: string;
+}
+
+export interface PendingKycItem {
+  profile?: RetailUser;
+  kyc?: KycProfile;
 }
 
 export interface UpdateRetailKycRequest extends Partial<KycProfile> {}
@@ -743,7 +752,7 @@ export const retailApi = createApi({
     }),
 
     // ── KYC Endpoints ────────────────────────────────────────────────────────
-    getPendingKyc: builder.query<ApiResponse<{ items?: KycProfile[]; data?: KycProfile[] }>, void>({
+    getPendingKyc: builder.query<ApiResponse<PendingKycItem[] | KycProfile[] | { items?: KycProfile[]; data?: KycProfile[] }>, void>({
       query: () => '/retail/users/kyc/pending',
       providesTags: ['PendingKyc'],
     }),
