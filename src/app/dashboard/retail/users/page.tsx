@@ -239,67 +239,73 @@ export default function RetailUsersPage() {
             </div>
           ) : null}
 
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100/75 dark:bg-gray-800/80 uppercase tracking-wider font-mono">
               <tr>
-                <th className="px-6 py-3 font-medium">Customer</th>
-                <th className="px-6 py-3 font-medium">Phone / BVN</th>
-                <th className="px-6 py-3 font-medium">Cash Account</th>
-                <th className="px-6 py-3 font-medium">KYC</th>
-                <th className="px-6 py-3 font-medium">Status</th>
-                <th className="px-6 py-3 font-medium text-right">Actions</th>
+                <th className="px-3 py-2 w-10 text-center border-b border-r border-gray-200 dark:border-gray-700">#</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 min-w-[200px]">Customer</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Phone / BVN</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Cash Account</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-center whitespace-nowrap">KYC</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-center whitespace-nowrap">Status</th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-right w-16">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800 font-sans">
               {userList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-xs font-mono border-b border-gray-200 dark:border-gray-800">
                     No retail customers found matching criteria.
                   </td>
                 </tr>
               ) : (
-                userList.map((user) => {
+                userList.map((user, idx) => {
                   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unnamed Customer';
                   return (
                     <tr
                       key={user.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition cursor-pointer"
+                      className="hover:bg-blue-50/20 dark:hover:bg-gray-800/40 transition-colors cursor-pointer group"
                       onClick={() => router.push(`/dashboard/retail/users/${user.id}`)}
                     >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#961A1C] to-[#4d0000] flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {/* S/N */}
+                      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                        #{idx + 1}
+                      </td>
+
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded bg-gradient-to-br from-[#961A1C] to-[#4d0000] flex items-center justify-center text-white text-xs font-bold shrink-0 font-mono">
                             {fullName[0]}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                            <p className="font-semibold text-gray-900 dark:text-white truncate max-w-[170px]">
                               {fullName}
                             </p>
-                            <p className="text-xs text-gray-400">{user.email || 'No email'}</p>
+                            <p className="text-[10px] text-gray-400 font-mono truncate max-w-[170px]">{user.email || 'No email'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-500 text-sm">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 font-mono whitespace-nowrap">
                         <div>{user.phoneNumber || '—'}</div>
                         {user.bvn && (
-                          <div className="text-xs text-gray-400">BVN: {user.bvn}</div>
+                          <div className="text-[10px] text-gray-400">BVN: {user.bvn}</div>
                         )}
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono font-medium text-gray-900 dark:text-white whitespace-nowrap">
                         {user.cashAccountNo || user.vnuban || '—'}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-center whitespace-nowrap">
                         <span
-                          className={`px-2.5 py-1 text-xs font-bold rounded-md ${
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
                             kycStyles[user.kycStatus || 'Pending'] || kycStyles.Pending
                           }`}
                         >
                           {user.kycStatus || 'Pending'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-center whitespace-nowrap">
                         <span
-                          className={`px-2.5 py-1 text-xs font-bold rounded-md ${
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
                             statusStyles[user.status || 'Active'] || statusStyles.Active
                           }`}
                         >
@@ -307,7 +313,7 @@ export default function RetailUsersPage() {
                         </span>
                       </td>
                       <td
-                        className="px-6 py-4 text-right relative"
+                        className="px-3 py-2 align-middle border-b border-gray-200 dark:border-gray-800 text-right relative"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="inline-block text-left">
@@ -315,9 +321,9 @@ export default function RetailUsersPage() {
                             onClick={() =>
                               setActiveMenuId(activeMenuId === user.id ? null : (user.id || null))
                             }
-                            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition cursor-pointer"
                           >
-                            <MoreHorizontal size={16} />
+                            <MoreHorizontal size={14} />
                           </button>
 
                           {activeMenuId === user.id && (

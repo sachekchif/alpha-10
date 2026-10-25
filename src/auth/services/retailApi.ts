@@ -343,6 +343,10 @@ export interface LedgerTransaction {
   reference?: string;
   externalReference?: string;
   fundAccountId?: string;
+  fundId?: string;
+  quantity?: number | null;
+  interest?: number | null;
+  sessionId?: string | null;
   transactionDate?: string;
   createdDate?: string;
   timestamp?: string;
@@ -914,7 +918,14 @@ export const retailApi = createApi({
     }),
 
     getLedgerTransactions: builder.query<
-      ApiResponse<{ items?: LedgerTransaction[]; data?: LedgerTransaction[]; totalCount?: number }>,
+      ApiResponse<{
+        transactions?: LedgerTransaction[];
+        items?: LedgerTransaction[];
+        data?: LedgerTransaction[];
+        totalCount?: number;
+        page?: number;
+        pageSize?: number;
+      }>,
       { id: string; category?: string; type?: string; status?: string; from?: string; to?: string; page?: number; pageSize?: number }
     >({
       query: ({ id, category, type, status, from, to, page = 1, pageSize = 10 }) => {

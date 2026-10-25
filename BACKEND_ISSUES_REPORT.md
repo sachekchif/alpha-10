@@ -16,6 +16,10 @@
 | **2** | 🔴 P0 (Blocker) | Mutual Funds | `GET /api/admin/mutual-fund-contents` | **401 Unauthorized** for `SuperAdmin` | Grant `SuperAdmin` & `Control` access across CRUD, allocations & holdings |
 | **3** | 🔴 P0 (Bug) | Learn Quiz Questions | `PUT /api/admin/learn/quiz/questions/{id}` | **500 Error** from circular JSON recursion (`Question` ↔ `Options`) | Return flat DTO / enable `IgnoreCycles` / add `[JsonIgnore]` |
 | **4** | 🟠 P1 (Feature) | Media / File Uploads | `POST /api/admin/uploads` | **No upload endpoint** for images/PDFs | Provide `multipart/form-data` upload API returning asset URL |
+| **5** | 🟡 P2 (Bug) | Retail Customers KYC | `GET /api/retail/users/{id}/kyc` | **404 Not Found** for unverified customer KYC | Return 200 with `data: null` instead of 404 |
+| **6** | 🔴 P0 (Outage) | Retail Positions | `GET /api/retail/users/{id}/position` | **500 Error** (`401 Unauthorized` upstream from Symplus) | Renew Symplus upstream gateway token / service credentials |
+| **7** | 🔴 P0 (Outage) | Retail Symplus Core | `GET /api/retail/users/{id}/symplus` | **500 Error** (`401 Unauthorized` upstream from Symplus) | Renew Symplus upstream gateway token / service credentials |
+| **8** | 🔴 P0 (Outage) | Retail Net Worth | `GET /api/retail/users/{id}/networth` | **500 Error** (`401 Unauthorized` upstream from Symplus) | Renew Symplus upstream gateway token / service credentials |
 
 ---
 
@@ -95,3 +99,74 @@
       }
     }
     ```
+
+---
+
+## 5. 404 Not Found When Querying Unverified Customer KYC
+
+- **Endpoint:** `GET /api/retail/users/{id}/kyc`
+- **Example Request:** `GET https://mobile-test.alpha10group.com/alphaten-admin/api/retail/users/67bc3c5a-2e8a-4f64-a4ea-435ff62cf292/kyc`
+- **Current Behavior:** Returns HTTP 404 Not Found:
+  ```json
+  {
+    "statusCode": 404,
+    "statusMessage": "KYC profile not found for this customer."
+  }
+  ```
+- **Impact:** Frontend customer details and KYC tabs trigger uncaught error toasts for newly onboarded customers who have not yet submitted KYC documents.
+- **Action Required:**
+  - For unverified customers or customers without a KYC record, return `200 OK` with `data: null` or `{ "tier": 0, "status": "NotSubmitted" }` rather than throwing an uncaught HTTP 404 exception.
+
+---
+
+## 6. 500 Error: Upstream Symplus 401 Unauthorized on Position Lookup
+
+- **Endpoint:** `GET /api/retail/users/{id}/position`
+- **Example Request:** `GET https://mobile-test.alpha10group.com/alphaten-admin/api/retail/users/67bc3c5a-2e8a-4f64-a4ea-435ff62cf292/position`
+- **Current Behavior:** Returns HTTP 500 Internal Server Error:
+  ```json
+  {
+    "statusCode": 500,
+    "statusMessage": "Failed to fetch position: Response status code does not indicate success: 401 (Unauthorized)."
+  }
+  ```
+- **Impact:** Customer details page cannot load investment holding positions from Symplus Core Banking.
+- **Root Cause & Action Required:**
+  - The Alpha-10 backend's integration gateway with Symplus core banking failed authentication (`401 Unauthorized`).
+  - Refresh/rotate the Symplus Core API key or OAuth service credentials in backend configuration.
+  - Wrap upstream calls in resilient exception handling so upstream auth issues return structured `502 Bad Gateway` / `503 Service Unavailable` with fallback cached data.
+
+---
+
+## 7. 500 Error: Upstream Symplus 401 Unauthorized on Customer Pull
+
+- **Endpoint:** `GET /api/retail/users/{id}/symplus`
+- **Example Request:** `GET https://mobile-test.alpha10group.com/alphaten-admin/api/retail/users/67bc3c5a-2e8a-4f64-a4ea-435ff62cf292/symplus`
+- **Current Behavior:** Returns HTTP 500 Internal Server Error:
+  ```json
+  {
+    "statusCode": 500,
+    "statusMessage": "Failed to pull customer from Symplus: Response status code does not indicate success: 401 (Unauthorized)."
+  }
+  ```
+- **Impact:** Cannot pull or synchronize retail customer profile details directly from Symplus Core Banking.
+- **Root Cause & Action Required:**
+  - Symplus Core integration gateway credentials expired. Rotate/renew upstream authentication credentials.
+
+---
+
+## 8. 500 Error: Upstream Symplus 401 Unauthorized on Net Worth Calculation
+
+- **Endpoint:** `GET /api/retail/users/{id}/networth`
+- **Example Request:** `GET https://mobile-test.alpha10group.com/alphaten-admin/api/retail/users/67bc3c5a-2e8a-4f64-a4ea-435ff62cf292/networth`
+- **Current Behavior:** Returns HTTP 500 Internal Server Error:
+  ```json
+  {
+    "statusCode": 500,
+    "statusMessage": "Failed to fetch net worth: Response status code does not indicate success: 401 (Unauthorized)."
+  }
+  ```
+- **Impact:** Total net worth, total assets, and total liabilities calculations cannot be retrieved from Symplus.
+- **Root Cause & Action Required:**
+  - Re-authenticate Symplus Core service integration credentials. Ensure token auto-renewal cron is active.
+

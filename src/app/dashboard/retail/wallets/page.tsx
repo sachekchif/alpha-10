@@ -22,13 +22,13 @@ import {
 
 const { RangePicker } = DatePicker;
 
+import { WalletStatus, WalletState, StatusBadge, StateBadge } from './components/WalletBadges';
+
 // --- TYPES & INTERFACES ---
-type WalletStatus = 'Active' | 'Suspended' | 'Dormant' | 'Frozen' | 'Closed';
-type WalletState = 'Healthy' | 'Under Review' | 'Frozen Funds' | 'Restricted' | 'Pending Activation' | 'Compliance Hold' | 'AML Investigation';
 type WalletType = 'Personal' | 'Business' | 'Corporate' | 'Merchant';
 type Currency = 'NGN' | 'USD' | 'GBP' | 'EUR';
 
-export interface WalletRecord {
+interface WalletRecord {
   id: string;
   customerName: string;
   customerId: string;
@@ -840,45 +840,51 @@ export default function WalletManagementPage() {
               </Button>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100/75 dark:bg-gray-800/80 uppercase tracking-wider font-mono">
                 <tr>
-                  <th className="px-5 py-3">Wallet ID</th>
-                  <th className="px-5 py-3">Customer Name</th>
-                  <th className="px-5 py-3">Wallet Type</th>
-                  <th className="px-5 py-3">Currency</th>
-                  <th className="px-5 py-3">Current Balance</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">State</th>
-                  <th className="px-5 py-3">Last Activity</th>
-                  <th className="px-5 py-3">Created Date</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                  <th className="px-3 py-2 w-10 text-center border-b border-r border-gray-200 dark:border-gray-700">#</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Wallet ID</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 min-w-[180px]">Customer Name</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Wallet Type</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-center whitespace-nowrap">Currency</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-right whitespace-nowrap">Current Balance</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-center whitespace-nowrap">Status</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-center whitespace-nowrap">State</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Last Activity</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Created Date</th>
+                  <th className="px-3 py-2 text-right border-b border-gray-200 dark:border-gray-700 w-16 sticky right-0 bg-gray-100 dark:bg-gray-800 z-10 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-xs">
-                {filteredWallets.map((wallet) => (
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800 font-sans">
+                {filteredWallets.map((wallet, idx) => (
                   <tr
                     key={wallet.id}
                     onClick={() => router.push(`/dashboard/retail/wallets/${wallet.id}`)}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition cursor-pointer group"
+                    className="hover:bg-blue-50/20 dark:hover:bg-gray-800/40 transition-colors cursor-pointer group"
                   >
+                    {/* S/N */}
+                    <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                      #{idx + 1}
+                    </td>
+
                     {/* Wallet ID */}
-                    <td className="px-5 py-3.5 font-mono font-bold text-[#961A1C] dark:text-red-400 group-hover:underline">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono font-bold text-[#961A1C] dark:text-red-400 group-hover:underline whitespace-nowrap">
                       {wallet.id}
                     </td>
 
                     {/* Customer Name */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-gray-900 dark:text-white">{wallet.customerName}</span>
-                        <span className="text-[11px] text-gray-400 line-clamp-1">{wallet.email}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white truncate max-w-[170px]">{wallet.customerName}</span>
+                        <span className="text-[10px] text-gray-400 font-mono line-clamp-1">{wallet.email}</span>
                       </div>
                     </td>
 
                     {/* Wallet Type */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
                       <Tag
-                        className="font-medium rounded-md text-[11px] border-none px-2 py-0.5"
+                        className="font-medium rounded-md text-[10px] border-none px-2 py-0.5"
                         color={
                           wallet.walletType === 'Corporate' ? 'red' :
                           wallet.walletType === 'Business' ? 'blue' :
@@ -890,43 +896,43 @@ export default function WalletManagementPage() {
                     </td>
 
                     {/* Currency */}
-                    <td className="px-5 py-3.5">
-                      <span className="font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/80 px-2 py-0.5 rounded text-[11px]">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-center whitespace-nowrap">
+                      <span className="font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-[10px] font-mono">
                         {wallet.currency}
                       </span>
                     </td>
 
                     {/* Current Balance */}
-                    <td className="px-5 py-3.5 font-bold text-gray-900 dark:text-white text-sm">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-right font-mono font-bold text-gray-900 dark:text-white whitespace-nowrap">
                       {wallet.currency === 'USD' ? '$' : wallet.currency === 'GBP' ? '£' : wallet.currency === 'EUR' ? '€' : '₦'}
                       {wallet.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
 
                     {/* Status Badge */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-center whitespace-nowrap">
                       <StatusBadge status={wallet.status} />
                     </td>
 
                     {/* State Badge */}
-                    <td className="px-5 py-3.5">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-center whitespace-nowrap">
                       <StateBadge state={wallet.state} />
                     </td>
 
                     {/* Last Activity */}
-                    <td className="px-5 py-3.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 font-mono text-[11px] whitespace-nowrap">
                       {wallet.lastActivity}
                     </td>
 
                     {/* Created Date */}
-                    <td className="px-5 py-3.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 font-mono text-[11px] whitespace-nowrap">
                       {wallet.createdDate}
                     </td>
 
                     {/* Actions Menu */}
-                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-3 py-2 align-middle border-b border-gray-200 dark:border-gray-800 text-right whitespace-nowrap sticky right-0 bg-white dark:bg-gray-900 z-10 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]" onClick={(e) => e.stopPropagation()}>
                       <Dropdown menu={getRowMenu(wallet)} trigger={['click']} placement="bottomRight">
-                        <button className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                          <MoreVertical size={16} />
+                        <button className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                          <MoreVertical size={14} />
                         </button>
                       </Dropdown>
                     </td>
@@ -1189,44 +1195,5 @@ function KpiCard({ title, value, icon, color }: { title: string; value: string; 
         <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 mt-0.5 truncate">{title}</p>
       </div>
     </div>
-  );
-}
-
-// --- STATUS BADGE COMPONENT ---
-export function StatusBadge({ status }: { status: WalletStatus }) {
-  const styles: Record<WalletStatus, { color: string; label: string; icon: React.ReactNode }> = {
-    Active: { color: 'success', label: 'Active', icon: <CheckCircle2 size={12} /> },
-    Suspended: { color: 'warning', label: 'Suspended', icon: <PauseCircle size={12} /> },
-    Dormant: { color: 'default', label: 'Dormant', icon: <Clock size={12} /> },
-    Frozen: { color: 'error', label: 'Frozen', icon: <Lock size={12} /> },
-    Closed: { color: 'default', label: 'Closed', icon: <XCircle size={12} /> },
-  };
-
-  const current = styles[status] || styles.Active;
-  return (
-    <Tag color={current.color} className="inline-flex items-center gap-1 px-2 py-0.5 font-semibold text-[11px] rounded-md">
-      {current.icon}
-      {current.label}
-    </Tag>
-  );
-}
-
-// --- STATE BADGE COMPONENT ---
-export function StateBadge({ state }: { state: WalletState }) {
-  const styles: Record<WalletState, { color: string; label: string }> = {
-    Healthy: { color: 'green', label: 'Healthy' },
-    'Under Review': { color: 'processing', label: 'Under Review' },
-    'Frozen Funds': { color: 'volcano', label: 'Frozen Funds' },
-    Restricted: { color: 'warning', label: 'Restricted' },
-    'Pending Activation': { color: 'purple', label: 'Pending Activation' },
-    'Compliance Hold': { color: 'red', label: 'Compliance Hold' },
-    'AML Investigation': { color: 'magenta', label: 'AML Investigation' },
-  };
-
-  const current = styles[state] || styles.Healthy;
-  return (
-    <Tag color={current.color} className="font-medium text-[11px] rounded-md border-none">
-      {current.label}
-    </Tag>
   );
 }

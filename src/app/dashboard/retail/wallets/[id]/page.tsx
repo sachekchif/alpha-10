@@ -14,7 +14,7 @@ import {
   ShieldCheck, Layers, FileSpreadsheet, Send, HelpCircle, Ban, Settings,
   MoreVertical, ChevronDown
 } from 'lucide-react';
-import { StatusBadge, StateBadge } from '../page';
+import { StatusBadge, StateBadge } from '../components/WalletBadges';
 
 // MOCK DETAILED WALLET DATA (ALPHA 10 BANK ONLY)
 const mockWalletDetails: Record<string, any> = {

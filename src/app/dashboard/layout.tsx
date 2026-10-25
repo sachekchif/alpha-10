@@ -10,6 +10,7 @@ import {
   Search,
   Bell,
   Menu,
+  X,
   ChevronDown,
   ChevronUp,
   LogOut,
@@ -38,8 +39,55 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
+
+  const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const token = useAppSelector((state) => state.auth.token);
+  const [logoutApi] = useLogoutMutation();
+
+  // Close mobile sidebar on route navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Lock body scroll on mobile when sidebar drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
+
+  // Automatically close mobile sidebar if viewport expands to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setMobileOpen((prev) => !prev);
+    } else {
+      setSidebarOpen((prev) => !prev);
+    }
+  };
+
+  const isExpanded = mobileOpen || sidebarOpen;
 
   useEffect(() => {
     const updateClock = () => {
@@ -66,13 +114,6 @@ export default function DashboardLayout({
     return () => clearInterval(interval);
   }, []);
 
-  const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-  const token = useAppSelector((state) => state.auth.token);
-  const [logoutApi] = useLogoutMutation();
-  const router = useRouter();
-
   useEffect(() => {
     if (typeof window !== 'undefined' && !isAuthenticated && !token) {
       router.push('/auth/login?expired=true');
@@ -95,24 +136,44 @@ export default function DashboardLayout({
     .toUpperCase()
     .slice(0, 2);
 
+  const closeMobileSidebar = () => setMobileOpen(false);
+
   return (
     <div className="flex h-screen bg-[#f7f4f4] dark:bg-gray-900 overflow-hidden font-sans text-gray-800 dark:text-gray-200 transition-colors duration-300">
 
-      {/* Sidebar */}
+      {/* Sidebar (drawer on mobile / tablet, fixed column on desktop) */}
       <aside
-        className={`bg-black border-r border-gray-800 transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64' : 'w-20'
-          } shrink-0 relative z-20`}
+        className={`bg-black border-r border-gray-800 transition-all duration-300 flex flex-col fixed inset-y-0 left-0 z-50 lg:static lg:z-20 ${
+          mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+        } ${sidebarOpen ? 'lg:w-64' : 'lg:w-20'} w-72 sm:w-80 shrink-0`}
       >
-        <div className="h-20 flex items-center px-6">
-          <div className="flex items-center gap-3 h-full">
-            <img src="/assets/images/logo.png" alt="Alpha10 Logo" className={`h-8 w-auto object-contain transition-all duration-200 ${!sidebarOpen && 'pl-1'}`} />
-          </div>
+        <div className="h-20 flex items-center justify-between px-6 shrink-0 border-b border-gray-900/60 lg:border-b-0">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-3 h-full"
+            onClick={closeMobileSidebar}
+          >
+            <img
+              src="/assets/images/logo.png"
+              alt="Alpha10 Logo"
+              className={`h-8 w-auto object-contain transition-all duration-200 ${!sidebarOpen ? 'lg:pl-1' : ''}`}
+            />
+          </Link>
+          {/* Close button inside sidebar on smaller screens */}
+          <button
+            type="button"
+            onClick={closeMobileSidebar}
+            className="lg:hidden p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-900 transition cursor-pointer"
+            aria-label="Close Navigation"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto py-2 flex flex-col gap-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
           {/* Search inside Sidebar */}
-          {sidebarOpen && (
+          {isExpanded && (
             <div className="px-4">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -129,14 +190,15 @@ export default function DashboardLayout({
           {/* ── GENERAL — visible to SuperAdmin and Control (full access to everything) ──────── */}
           {(fullAccess || !userRole) && (
             <div className="px-4">
-              {sidebarOpen && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">General</p>}
+              {isExpanded && <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">General</p>}
               <nav className="flex flex-col gap-1">
-                <NavItem href="/dashboard" icon={<LayoutDashboard size={18} />} label="Overview" isOpen={sidebarOpen} exact />
+                <NavItem href="/dashboard" icon={<LayoutDashboard size={18} />} label="Overview" isOpen={isExpanded} onNavigate={closeMobileSidebar} exact />
 
                 <NavItem
                   icon={<Store size={18} />}
                   label="Retail Banking"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Dashboard", href: "/dashboard/retail", exact: true },
                     { label: "Customers", href: "/dashboard/retail/customers" },
@@ -162,7 +224,8 @@ export default function DashboardLayout({
                 <NavItem
                   icon={<Building2 size={18} />}
                   label="Corporate Banking"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Dashboard", href: "/dashboard/corporate", exact: true },
                     { label: "Customers", href: "/dashboard/corporate/customers" },
@@ -175,7 +238,8 @@ export default function DashboardLayout({
                 <NavItem
                   icon={<GraduationCap size={18} />}
                   label="Customers Education"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Overview", href: "/dashboard/learn", exact: true },
                     { label: "Investment Education", href: "/dashboard/retail/education" },
@@ -187,14 +251,15 @@ export default function DashboardLayout({
                   ]}
                 />
 
-                {sidebarOpen ? <hr className="border-gray-800 my-2 mx-2" /> : <div className="h-px bg-gray-800 my-2 mx-2"></div>}
+                {isExpanded ? <hr className="border-gray-800 my-2 mx-2" /> : <div className="h-px bg-gray-800 my-2 mx-2"></div>}
 
-                <NavItem href="/dashboard/pending" icon={<ClipboardList size={18} />} label="Pending On Me" isOpen={sidebarOpen} hasDot />
+                <NavItem href="/dashboard/pending" icon={<ClipboardList size={18} />} label="Pending On Me" isOpen={isExpanded} onNavigate={closeMobileSidebar} hasDot />
 
                 <NavItem
                   icon={<FileText size={18} />}
                   label="Reports"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Customer Reports", href: "/dashboard/reports/customers" },
                     { label: "Financial Reports", href: "/dashboard/reports/financial" },
@@ -209,7 +274,8 @@ export default function DashboardLayout({
                 <NavItem
                   icon={<Activity size={18} />}
                   label="System Monitoring"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "API Health", href: "/dashboard/monitoring/api" },
                     { label: "Integration Status", href: "/dashboard/monitoring/integrations" },
@@ -223,7 +289,8 @@ export default function DashboardLayout({
                 <NavItem
                   icon={<Plug size={18} />}
                   label="Integrations"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Paystack", href: "/dashboard/integrations/paystack" },
                     { label: "Flutterwave", href: "/dashboard/integrations/flutterwave" },
@@ -241,7 +308,8 @@ export default function DashboardLayout({
                 <NavItem
                   icon={<Megaphone size={18} />}
                   label="Notifications"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Push notifications", href: "/dashboard/notifications/push" },
                     { label: "Email templates", href: "/dashboard/notifications/email" },
@@ -253,7 +321,8 @@ export default function DashboardLayout({
                 <NavItem
                   icon={<Files size={18} />}
                   label="Content Management"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Terms", href: "/dashboard/cms/terms" },
                     { label: "Privacy", href: "/dashboard/cms/privacy" },
@@ -263,16 +332,17 @@ export default function DashboardLayout({
                   ]}
                 />
 
-                {sidebarOpen ? <hr className="border-gray-800 my-2 mx-2" /> : <div className="h-px bg-gray-800 my-2 mx-2"></div>}
+                {isExpanded ? <hr className="border-gray-800 my-2 mx-2" /> : <div className="h-px bg-gray-800 my-2 mx-2"></div>}
 
-                <NavItem href="/dashboard/admins" icon={<Users size={18} />} label="Admin Management" isOpen={sidebarOpen} />
-                <NavItem href="/dashboard/support" icon={<Headphones size={18} />} label="Customer Support" isOpen={sidebarOpen} />
-                <NavItem href="/dashboard/activity-logs" icon={<History size={18} />} label="Activity Logs" isOpen={sidebarOpen} />
+                <NavItem href="/dashboard/admins" icon={<Users size={18} />} label="Admin Management" isOpen={isExpanded} onNavigate={closeMobileSidebar} />
+                <NavItem href="/dashboard/support" icon={<Headphones size={18} />} label="Customer Support" isOpen={isExpanded} onNavigate={closeMobileSidebar} />
+                <NavItem href="/dashboard/activity-logs" icon={<History size={18} />} label="Activity Logs" isOpen={isExpanded} onNavigate={closeMobileSidebar} />
 
                 <NavItem
                   icon={<Settings size={18} />}
                   label="Settings"
-                  isOpen={sidebarOpen}
+                  isOpen={isExpanded}
+                  onNavigate={closeMobileSidebar}
                   subItems={[
                     { label: "Personal Settings", href: "/dashboard/settings/personal" },
                     { label: "Platform Settings", href: "/dashboard/settings/platform" },
@@ -290,7 +360,8 @@ export default function DashboardLayout({
               <NavItem
                 icon={<LogOut size={18} />}
                 label="Log Out"
-                isOpen={sidebarOpen}
+                isOpen={isExpanded}
+                onNavigate={closeMobileSidebar}
                 onClick={() => setIsLogoutModalOpen(true)}
               />
             </nav>
@@ -300,17 +371,33 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden">
 
         {/* Header */}
-        <header className="h-16 bg-white dark:bg-gray-900 flex items-center justify-between px-6 shrink-0 relative z-10 transition-colors duration-300">
-          <div className="flex items-center gap-4">
-            <button className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              <Menu size={24} />
+        <header className="h-16 bg-white dark:bg-gray-900 flex items-center justify-between px-4 sm:px-6 shrink-0 relative z-10 transition-colors duration-300 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="p-2 -ml-1 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
+              onClick={toggleSidebar}
+              aria-label="Toggle navigation menu"
+            >
+              <Menu size={22} />
             </button>
+
+            {/* Logo visible on smaller screens to the right of the three bars */}
+            <Link href="/dashboard" className="flex items-center lg:hidden">
+              <div className="bg-black px-2.5 py-1 rounded-md flex items-center border border-gray-800/40 shadow-xs">
+                <img
+                  src="/assets/images/logo.png"
+                  alt="Alpha10 Logo"
+                  className="h-6 w-auto object-contain"
+                />
+              </div>
+            </Link>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             {/* Live Clock */}
             {currentTime && (
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 shadow-xs">
@@ -345,9 +432,13 @@ export default function DashboardLayout({
 
       </main>
 
-      {/* Mobile Sidebar Overlay */}
-      {!sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(true)} />
+      {/* Mobile Sidebar Overlay Backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300"
+          onClick={closeMobileSidebar}
+          aria-hidden="true"
+        />
       )}
 
       {/* Logout Modal */}
@@ -403,16 +494,18 @@ function NavItem({
   hasDot,
   onClick,
   exact,
+  onNavigate,
 }: {
-  icon: React.ReactNode,
-  label: string,
-  href?: string,
-  isOpen: boolean,
-  subItems?: { label: string, href: string, exact?: boolean }[],
-  hasDot?: boolean,
-  onClick?: (e: React.MouseEvent) => void,
+  icon: React.ReactNode;
+  label: string;
+  href?: string;
+  isOpen: boolean;
+  subItems?: { label: string; href: string; exact?: boolean }[];
+  hasDot?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
   /** When true, only highlights if pathname matches href exactly (not prefix). */
-  exact?: boolean,
+  exact?: boolean;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -468,7 +561,10 @@ function NavItem({
     <div className="flex flex-col">
       {onClick ? (
         <button
-          onClick={onClick}
+          onClick={(e) => {
+            onClick(e);
+            onNavigate?.();
+          }}
           className={`flex items-center gap-3 px-4 py-2.5 rounded-sm transition-all duration-200 group w-full text-left text-gray-400 hover:bg-[#1a1a2e] hover:text-white font-medium`}
           title={isOpen ? "" : label}
         >
@@ -477,6 +573,7 @@ function NavItem({
       ) : href && !hasSubItems ? (
         <Link
           href={href}
+          onClick={onNavigate}
           className={`flex items-center gap-3 px-4 py-2.5 rounded-sm transition-all duration-200 group ${isActive
             ? 'bg-gradient-to-r from-[#4d0000] to-[#961A1C] text-white font-medium shadow-sm'
             : 'text-gray-400 hover:bg-[#1a1a2e] hover:text-white font-medium'
@@ -509,6 +606,7 @@ function NavItem({
               <Link
                 key={idx}
                 href={sub.href}
+                onClick={onNavigate}
                 className={`py-2 text-sm transition-colors relative flex items-center ${isSubItemActive ? 'text-white font-semibold' : 'text-gray-400 hover:text-white'
                   }`}
               >

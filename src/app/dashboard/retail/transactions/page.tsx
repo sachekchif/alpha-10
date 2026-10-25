@@ -611,83 +611,89 @@ export default function RetailTransactionsPage() {
             </div>
           ) : (
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 font-semibold text-gray-500 uppercase tracking-wider">
+              <thead className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100/75 dark:bg-gray-800/80 uppercase tracking-wider font-mono">
                 <tr>
-                  <th className="px-4 py-3">Reference ID</th>
-                  <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Amount</th>
-                  <th className="px-4 py-3">Fee</th>
-                  <th className="px-4 py-3">Channel</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Counterparty</th>
-                  <th className="px-4 py-3">Date & Time</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-3 py-2 w-10 text-center border-b border-r border-gray-200 dark:border-gray-700">#</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Reference ID</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 min-w-[180px]">Customer</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Type</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-right whitespace-nowrap">Amount</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-right whitespace-nowrap">Fee</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Channel</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-center whitespace-nowrap">Status</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700">Counterparty</th>
+                  <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">Date & Time</th>
+                  <th className="px-3 py-2 text-right border-b border-gray-200 dark:border-gray-700 w-16 sticky right-0 bg-gray-100 dark:bg-gray-800 z-10 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredTransactions.map((txn) => {
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800 font-sans">
+                {filteredTransactions.map((txn, idx) => {
                   const sym = txn.currency === 'USD' ? '$' : txn.currency === 'GBP' ? '£' : txn.currency === 'EUR' ? '€' : '₦';
                   return (
-                    <tr key={txn.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition">
-                      <td className="px-4 py-3">
+                    <tr key={txn.id} className="hover:bg-blue-50/20 dark:hover:bg-gray-800/40 transition-colors group">
+                      {/* S/N */}
+                      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                        #{idx + 1}
+                      </td>
+
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
                         <button
                           onClick={() => {
                             setSelectedTxn(txn);
                             setDetailsModalOpen(true);
                           }}
-                          className="font-mono font-bold text-[#961A1C] hover:underline flex items-center gap-1"
+                          className="font-mono font-bold text-[#961A1C] hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           {txn.id}
                         </button>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800">
                         <div className="flex flex-col">
                           <Link
                             href={`/dashboard/retail/customers/${txn.customerId}`}
-                            className="font-bold text-gray-900 dark:text-white hover:underline"
+                            className="font-bold text-gray-900 dark:text-white hover:underline truncate max-w-[170px]"
                           >
                             {txn.customerName}
                           </Link>
-                          <span className="text-[11px] text-gray-400 font-mono">{txn.accountNumber}</span>
+                          <span className="text-[10px] text-gray-400 font-mono">{txn.accountNumber}</span>
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">
-                        <Tag color="purple" className="font-semibold text-[10px] rounded-md">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 whitespace-nowrap">
+                        <Tag color="purple" className="font-semibold text-[10px] rounded-md border-none">
                           {txn.type}
                         </Tag>
                       </td>
 
-                      <td className={`px-4 py-3 font-bold ${txn.direction === 'Credit' ? 'text-emerald-600' : 'text-gray-900 dark:text-white'}`}>
+                      <td className={`px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-right font-mono font-bold whitespace-nowrap ${txn.direction === 'Credit' ? 'text-emerald-600' : 'text-gray-900 dark:text-white'}`}>
                         {txn.direction === 'Credit' ? '+' : '-'}{sym}{txn.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
 
-                      <td className="px-4 py-3 text-gray-500">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-right font-mono text-gray-500 whitespace-nowrap">
                         {sym}{txn.fee.toFixed(2)}
                       </td>
 
-                      <td className="px-4 py-3 text-gray-500">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 whitespace-nowrap">
                         {txn.channel}
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-center whitespace-nowrap">
                         <TransactionStatusBadge status={txn.status} />
                       </td>
 
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300 max-w-xs truncate">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 max-w-xs truncate" title={txn.counterparty}>
                         {txn.counterparty}
                       </td>
 
-                      <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-400 font-mono text-[11px] whitespace-nowrap">
                         {txn.date}, {txn.time}
                       </td>
 
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-3 py-2 align-middle border-b border-gray-200 dark:border-gray-800 text-right whitespace-nowrap sticky right-0 bg-white dark:bg-gray-900 z-10 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 shadow-[-3px_0_6px_-2px_rgba(0,0,0,0.06)]">
                         <Dropdown menu={getActionMenu(txn)} trigger={['click']} placement="bottomRight">
-                          <button className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                            <MoreVertical size={16} />
+                          <button className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                            <MoreVertical size={14} />
                           </button>
                         </Dropdown>
                       </td>

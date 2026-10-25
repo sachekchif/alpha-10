@@ -191,21 +191,22 @@ export default function KycPage() {
             </div>
           ) : null}
 
-          <table className="w-full text-left text-xs">
-            <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 font-mono">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="text-[11px] font-semibold text-gray-600 dark:text-gray-400 bg-gray-100/75 dark:bg-gray-800/80 uppercase tracking-wider font-mono">
               <tr>
-                <th className="px-4 py-3 font-semibold uppercase">User / Names</th>
-                <th className="px-4 py-3 font-semibold uppercase">ID Doc Info</th>
-                <th className="px-4 py-3 font-semibold uppercase">Employer / Bank</th>
-                <th className="px-4 py-3 font-semibold uppercase">Nationality</th>
-                <th className="px-4 py-3 font-semibold uppercase">Status</th>
-                <th className="px-4 py-3 font-semibold uppercase text-right">Actions</th>
+                <th className="px-3 py-2 w-10 text-center border-b border-r border-gray-200 dark:border-gray-700">#</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700">User / Names</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700">ID Doc Info</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700">Employer / Bank</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700">Nationality</th>
+                <th className="px-3 py-2 border-b border-r border-gray-200 dark:border-gray-700 text-center">Status</th>
+                <th className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-right w-16">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 font-sans">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800 font-sans">
               {filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 text-xs font-mono">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-xs font-mono border-b border-gray-200 dark:border-gray-800">
                     No pending KYC submissions in queue.
                   </td>
                 </tr>
@@ -216,32 +217,35 @@ export default function KycPage() {
                     <tr
                       key={req.id || req.userId || idx}
                       onClick={() => openReviewDrawer(req)}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-900/40 transition cursor-pointer"
+                      className="hover:bg-blue-50/20 dark:hover:bg-gray-800/40 transition-colors cursor-pointer group"
                     >
-                      <td className="px-4 py-3.5 font-semibold text-gray-900 dark:text-white">
+                      <td className="px-3 py-2 text-center align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                        #{idx + 1}
+                      </td>
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 font-semibold text-gray-900 dark:text-white">
                         <div>{names}</div>
                         <div className="text-[10px] text-gray-400 font-mono font-normal">ID: {req.userId}</div>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-300 font-mono">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 font-mono">
                         <div>{req.identityDocType || req.identityDocName || 'ID Document'}</div>
                         <div className="text-[10px] text-gray-400">{req.identityDocNumber || 'No doc number'}</div>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-300">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300">
                         <div>{req.employerName || '—'}</div>
                         <div className="text-[10px] text-gray-400">{req.bankName ? `${req.bankName} (${req.bankAccountNumber || ''})` : ''}</div>
                       </td>
-                      <td className="px-4 py-3.5 font-mono text-gray-600 dark:text-gray-300">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 font-mono text-gray-600 dark:text-gray-300">
                         {req.nationality || 'Nigerian'}
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-yellow-50 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-400">
+                      <td className="px-3 py-2 align-middle border-b border-r border-gray-200 dark:border-gray-800 text-center">
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-yellow-50 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-400 border border-yellow-200">
                           {req.status || 'Pending'}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 py-2 align-middle border-b border-gray-200 dark:border-gray-800 text-right" onClick={(e) => e.stopPropagation()}>
                         <Dropdown menu={{ items: getMenuItems(req) }} trigger={['click']} placement="bottomRight">
-                          <button className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition">
-                            <MoreVertical size={15} />
+                          <button className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 transition cursor-pointer">
+                            <MoreVertical size={14} />
                           </button>
                         </Dropdown>
                       </td>
